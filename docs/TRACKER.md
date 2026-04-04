@@ -169,8 +169,8 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 
 | Phase | Key paths / artifacts |
 |-------|------------------------|
-| 0 | `settings.gradle.kts`, `docker-compose.yml`, `src/main/resources/application.yml`, `db/migration/V1__init.sql`, `.github/workflows/ci.yml` |
-| 1 | `shared/src/main/java/...` — VO, Result, exceptions, events, `ApiResponse`, `GlobalExceptionHandler` |
+| 0 | `settings.gradle.kts`, `docker-compose.yml`, `bank-boot/src/main/resources/application.yml`, `db/migration/V1__init.sql`, `.github/workflows/ci.yml` |
+| 1 | `bank-shared/src/main/java/...` — VO, Result, exceptions, events, `ApiResponse`, `GlobalExceptionHandler` |
 | 2 | `iam/...`, JWT/security, `/auth/*`, Flyway IAM |
 | 3 | `accounts/...`, ledger, posting, REST, listener stub |
 | 4 | `audit/...`, trigger, listener, query API |

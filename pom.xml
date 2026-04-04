@@ -14,8 +14,8 @@
 	<packaging>pom</packaging>
 	<name>bank-parent</name>
 	<modules>
-		<module>shared</module>
-		<module>app</module>
+		<module>bank-shared</module>
+		<module>bank-boot</module>
 	</modules>
 	<properties>
 		<java.version>21</java.version>

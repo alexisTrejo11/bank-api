@@ -12,6 +12,18 @@
 | [docs/EXECUTION_WORKFLOW.md](docs/EXECUTION_WORKFLOW.md) | Repeatable PR and release steps (Phases 1–8) |
 | [docs/GITHUB_SETUP_CHECKLIST.md](docs/GITHUB_SETUP_CHECKLIST.md) | Branch protection, labels, Issues P0–P8 (manual; use if `gh` is unavailable) |
 
+### Repository layout
+
+```
+bank-api/                    ← parent POM (bank-parent)
+├── bank-shared/             ← reusable library JAR (import this from other Spring modules)
+├── bank-boot/               ← Spring Boot runnable (depends on bank-shared)
+├── docs/
+└── pom.xml
+```
+
+There is **no** `src/` at the repository root; sources live only under each module.
+
 ### Build (Maven multi-module)
 
 From the repository root (JDK 21+):
@@ -20,8 +32,14 @@ From the repository root (JDK 21+):
 ./mvnw clean verify
 ```
 
-- **`bank-shared`** — shared kernel (`Money`, IDs, `Result`, `BankException`, `BankDomainEvent`, `ApiResponse`, `GlobalExceptionHandler`).
-- **`bank`** — Spring Boot application (`app` module).
+Install only the shared kernel for use in another project:
+
+```bash
+./mvnw -pl bank-shared install
+```
+
+- **`bank-shared`** — shared kernel ([`bank-shared/README.md`](bank-shared/README.md)).
+- **`bank-boot`** — Spring Boot application (`spring.application.name` in `bank-boot/src/main/resources/application.yaml`).
 
 ---
 
@@ -42,7 +60,7 @@ From the repository root (JDK 21+):
 | Metrics | Micrometer → Prometheus → Grafana | Actuator endpoints expose `/metrics` in Prometheus format |
 | Logs | Logback (JSON encoder) → Logstash → Elasticsearch → Kibana | Structured logs with `traceId`, `userId`, `moduleId` MDC fields |
 | Testing | JUnit 5 + Mockito + Testcontainers + REST Assured | Real DB and Redis in containers for integration tests |
-| Build | Maven multi-module (`bank-parent` → `bank-shared`, `bank`) | Shared kernel in `shared/`; runnable app in `app/` (Gradle planned for later phases per roadmap) |
+| Build | Maven multi-module (`bank-parent` → `bank-shared`, `bank-boot`) | Library in `bank-shared/`; runnable in `bank-boot/` (Gradle optional in later phases) |
 | Containers | Docker Compose | One file for full local stack |
 
 ---

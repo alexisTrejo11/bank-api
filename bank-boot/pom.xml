@@ -7,9 +7,9 @@
 		<artifactId>bank-parent</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
-	<artifactId>bank</artifactId>
+	<artifactId>bank-boot</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>bank</name>
+	<name>bank-boot</name>
 	<dependencies>
 		<dependency>
 			<groupId>io.github.alexistrejo11</groupId>
