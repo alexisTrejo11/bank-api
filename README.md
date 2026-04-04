@@ -1,6 +1,4 @@
-# bank-api
-Perfect. I have everything I need. Let me generate the full senior-level planning documentation.Here's the full senior-level planning documentation for your banking system.---
-
+# Bank API
 ## Project planning document
 
 ### 1. Tech stack decisions
