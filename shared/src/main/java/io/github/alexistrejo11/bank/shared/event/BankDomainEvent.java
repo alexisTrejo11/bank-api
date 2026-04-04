@@ -1,0 +1,32 @@
+package io.github.alexistrejo11.bank.shared.event;
+
+import java.time.Instant;
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * Base type for all domain events published inside the modular monolith.
+ * Module-specific events should extend this class.
+ */
+public abstract class BankDomainEvent {
+
+	private final UUID eventId;
+	private final Instant occurredAt;
+
+	protected BankDomainEvent() {
+		this(UUID.randomUUID(), Instant.now());
+	}
+
+	protected BankDomainEvent(UUID eventId, Instant occurredAt) {
+		this.eventId = Objects.requireNonNullElseGet(eventId, UUID::randomUUID);
+		this.occurredAt = Objects.requireNonNullElseGet(occurredAt, Instant::now);
+	}
+
+	public UUID eventId() {
+		return eventId;
+	}
+
+	public Instant occurredAt() {
+		return occurredAt;
+	}
+}

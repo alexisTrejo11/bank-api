@@ -12,6 +12,17 @@
 | [docs/EXECUTION_WORKFLOW.md](docs/EXECUTION_WORKFLOW.md) | Repeatable PR and release steps (Phases 1–8) |
 | [docs/GITHUB_SETUP_CHECKLIST.md](docs/GITHUB_SETUP_CHECKLIST.md) | Branch protection, labels, Issues P0–P8 (manual; use if `gh` is unavailable) |
 
+### Build (Maven multi-module)
+
+From the repository root (JDK 21+):
+
+```bash
+./mvnw clean verify
+```
+
+- **`bank-shared`** — shared kernel (`Money`, IDs, `Result`, `BankException`, `BankDomainEvent`, `ApiResponse`, `GlobalExceptionHandler`).
+- **`bank`** — Spring Boot application (`app` module).
+
 ---
 
 ## Project planning document
@@ -31,7 +42,7 @@
 | Metrics | Micrometer → Prometheus → Grafana | Actuator endpoints expose `/metrics` in Prometheus format |
 | Logs | Logback (JSON encoder) → Logstash → Elasticsearch → Kibana | Structured logs with `traceId`, `userId`, `moduleId` MDC fields |
 | Testing | JUnit 5 + Mockito + Testcontainers + REST Assured | Real DB and Redis in containers for integration tests |
-| Build | Gradle multi-project | One root build, one submodule per domain + one `infra` module |
+| Build | Maven multi-module (`bank-parent` → `bank-shared`, `bank`) | Shared kernel in `shared/`; runnable app in `app/` (Gradle planned for later phases per roadmap) |
 | Containers | Docker Compose | One file for full local stack |
 
 ---

@@ -33,12 +33,12 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 
 | ID | Track item | Done |
 |----|------------|------|
-| P1-VO | Value objects: `Money`, `AccountId`, `UserId`, `LoanId`, `TransferId` | [ ] |
-| P1-R | `Result<T>` sealed interface | [ ] |
-| P1-X | `BankException` hierarchy | [ ] |
-| P1-E | `BankDomainEvent` base record | [ ] |
-| P1-A | `ApiResponse<T>` envelope | [ ] |
-| P1-H | `GlobalExceptionHandler` skeleton | [ ] |
+| P1-VO | Value objects: `Money`, `AccountId`, `UserId`, `LoanId`, `TransferId` | [x] |
+| P1-R | `Result<T>` sealed interface | [x] |
+| P1-X | `BankException` hierarchy | [x] |
+| P1-E | `BankDomainEvent` base record | [x] |
+| P1-A | `ApiResponse<T>` envelope | [x] |
+| P1-H | `GlobalExceptionHandler` skeleton | [x] |
 
 - **PR:** 
 - **Merged at / SHA on `develop`:** 
