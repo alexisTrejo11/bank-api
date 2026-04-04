@@ -23,16 +23,16 @@
 
 ### 2. Module breakdown & bounded contexts
 
-Each module lives at `com.bank.{module}` and follows **hexagonal architecture** (ports & adapters).
+Each module lives at `io.github.alexistrejo11.bank.{module}` and follows **hexagonal architecture** (ports & adapters).
 
 ```
-com.bank.iam          → auth, users, roles, permissions
-com.bank.accounts     → accounts, balances, double-entry ledger
-com.bank.payments     → transfers, idempotency, FX stubs
-com.bank.loans        → loan origination, schedule, repayment
-com.bank.notifications → email/push dispatch, template engine
-com.bank.audit        → immutable event log, compliance queries
-com.bank.shared       → value objects (Money, Currency, AccountId), exceptions, events
+io.github.alexistrejo11.bank.iam          → auth, users, roles, permissions
+io.github.alexistrejo11.bank.accounts     → accounts, balances, double-entry ledger
+io.github.alexistrejo11.bank.payments     → transfers, idempotency, FX stubs
+io.github.alexistrejo11.bank.loans        → loan origination, schedule, repayment
+io.github.alexistrejo11.bank.notifications → email/push dispatch, template engine
+io.github.alexistrejo11.bank.audit        → immutable event log, compliance queries
+io.github.alexistrejo11.bank.shared       → value objects (Money, Currency, AccountId), exceptions, events
 ```
 
 **Module internal package structure (apply to every module):**
