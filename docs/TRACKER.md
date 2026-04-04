@@ -22,7 +22,8 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 | P0-CI | [.github/workflows/ci.yml](../.github/workflows/ci.yml) — build + test on push | [ ] |
 | P0-R | [README.md](../README.md) — setup instructions | [ ] |
 
-- **PR:** 
+- **Open PR (`develop` ← `feature/project-scaffold`):** [Create PR on GitHub](https://github.com/alexisTrejo11/bank-api/compare/develop...feature/project-scaffold?expand=1) (after Phase 0 implementation; squash merge when ready).
+- **PR (merged):** 
 - **Merged at / SHA on `develop`:** 
 
 ---
