@@ -1,4 +1,19 @@
 # Bank API
+
+## Documentation (execution and GitHub)
+
+| Document | Description |
+|----------|-------------|
+| [docs/GITHUB_STRATEGY.md](docs/GITHUB_STRATEGY.md) | Branches, merges, solo PR flow |
+| [docs/PR_CONVENTIONS.md](docs/PR_CONVENTIONS.md) | Conventional Commit titles, PR body, `Closes #` |
+| [docs/LABELS.md](docs/LABELS.md) | GitHub label definitions |
+| [docs/ISSUES.md](docs/ISSUES.md) | Phase ↔ Issue ↔ branch mapping |
+| [docs/TRACKER.md](docs/TRACKER.md) | **Implementation checklist** and PR links |
+| [docs/EXECUTION_WORKFLOW.md](docs/EXECUTION_WORKFLOW.md) | Repeatable PR and release steps (Phases 1–8) |
+| [docs/GITHUB_SETUP_CHECKLIST.md](docs/GITHUB_SETUP_CHECKLIST.md) | Branch protection, labels, Issues P0–P8 (manual; use if `gh` is unavailable) |
+
+---
+
 ## Project planning document
 
 ### 1. Tech stack decisions
