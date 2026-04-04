@@ -8,13 +8,17 @@ import java.util.Currency;
 import java.util.Objects;
 
 /**
- * Strictly positive monetary amount in a single currency.
+ * Immutable strictly positive amount in a single {@link java.util.Currency}.
  */
 public final class Money {
 
 	private final BigDecimal amount;
 	private final Currency currency;
 
+	/**
+	 * @param amount   strictly greater than zero
+	 * @param currency non-null ISO currency
+	 */
 	public Money(BigDecimal amount, Currency currency) {
 		if (amount == null) {
 			throw new InvalidMoneyAmountException(null);

@@ -3,6 +3,7 @@ package io.github.alexistrejo11.bank.shared.ids;
 import java.util.Objects;
 import java.util.UUID;
 
+/** Identifier for an account aggregate. */
 public record AccountId(UUID value) {
 
 	public AccountId {

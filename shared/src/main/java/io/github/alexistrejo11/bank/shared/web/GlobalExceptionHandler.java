@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
+/**
+ * RFC 7807 {@link ProblemDetail} responses with an extra {@code errorCode} property for machine clients.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

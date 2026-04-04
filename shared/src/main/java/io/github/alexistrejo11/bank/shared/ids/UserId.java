@@ -3,6 +3,7 @@ package io.github.alexistrejo11.bank.shared.ids;
 import java.util.Objects;
 import java.util.UUID;
 
+/** Identifier for an IAM user. */
 public record UserId(UUID value) {
 
 	public UserId {

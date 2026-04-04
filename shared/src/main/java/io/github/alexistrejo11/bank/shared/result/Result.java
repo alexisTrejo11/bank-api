@@ -2,8 +2,14 @@ package io.github.alexistrejo11.bank.shared.result;
 
 import java.util.Objects;
 
+/**
+ * Either a success value or a recoverable failure ({@code code} + {@code message}) without throwing.
+ *
+ * @param <T> success payload type
+ */
 public sealed interface Result<T> permits Result.Success, Result.Failure {
 
+	/** Successful outcome. */
 	record Success<T>(T value) implements Result<T> {
 
 		public Success {
@@ -11,6 +17,7 @@ public sealed interface Result<T> permits Result.Success, Result.Failure {
 		}
 	}
 
+	/** Recoverable failure (e.g. insufficient funds, duplicate idempotency key). */
 	record Failure<T>(String code, String message) implements Result<T> {
 
 		public Failure {

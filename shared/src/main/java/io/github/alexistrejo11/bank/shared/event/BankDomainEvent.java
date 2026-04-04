@@ -5,8 +5,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Base type for all domain events published inside the modular monolith.
- * Module-specific events should extend this class.
+ * Superclass for domain events (internal bus). Subclasses add payload fields; publish after successful commits.
  */
 public abstract class BankDomainEvent {
 
