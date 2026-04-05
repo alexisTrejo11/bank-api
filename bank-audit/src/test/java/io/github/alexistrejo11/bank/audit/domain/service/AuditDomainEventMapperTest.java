@@ -1,4 +1,4 @@
-package io.github.alexistrejo11.bank.audit.application;
+package io.github.alexistrejo11.bank.audit.domain.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

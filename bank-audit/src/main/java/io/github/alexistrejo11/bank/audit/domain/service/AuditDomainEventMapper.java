@@ -1,4 +1,4 @@
-package io.github.alexistrejo11.bank.audit.application;
+package io.github.alexistrejo11.bank.audit.domain.service;
 
 import io.github.alexistrejo11.bank.shared.event.BankDomainEvent;
 import io.github.alexistrejo11.bank.shared.event.LoanApprovedEvent;
