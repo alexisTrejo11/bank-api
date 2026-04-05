@@ -16,6 +16,7 @@
 	<modules>
 		<module>bank-shared</module>
 		<module>bank-iam</module>
+		<module>bank-accounts</module>
 		<module>bank-boot</module>
 	</modules>
 	<properties>
