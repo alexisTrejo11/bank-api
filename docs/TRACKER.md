@@ -121,10 +121,10 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 
 | ID | Track item | Done |
 |----|------------|------|
-| P6-A | Loan aggregate + repayment schedule generation | [ ] |
-| P6-O | Origination flow + disbursement event | [ ] |
-| P6-R | Repayment endpoint | [ ] |
-| P6-T | Tests | [ ] |
+| P6-A | Loan aggregate + repayment schedule generation | [x] |
+| P6-O | Origination flow + disbursement event | [x] |
+| P6-R | Repayment endpoint | [x] |
+| P6-T | Tests | [x] |
 
 - **PR:** 
 - **Merged at / SHA on `develop`:** 

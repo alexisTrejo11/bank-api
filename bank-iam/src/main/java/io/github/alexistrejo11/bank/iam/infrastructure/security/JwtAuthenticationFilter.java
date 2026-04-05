@@ -7,7 +7,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -23,12 +25,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) {
-		String path = request.getServletPath();
+		String path = pathWithinApplication(request);
 		return path.startsWith("/api/v1/auth/register")
 				|| path.startsWith("/api/v1/auth/login")
 				|| path.startsWith("/api/v1/auth/refresh")
 				|| path.startsWith("/actuator")
 				|| path.startsWith("/error");
+	}
+
+	private static String pathWithinApplication(HttpServletRequest request) {
+		String uri = request.getRequestURI();
+		String context = request.getContextPath();
+		if (context != null && !context.isEmpty() && uri.startsWith(context)) {
+			return uri.substring(context.length());
+		}
+		return uri != null ? uri : "";
 	}
 
 	@Override
@@ -39,6 +50,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	) throws ServletException, IOException {
 		String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 		if (header == null || !header.startsWith("Bearer ")) {
+			Authentication existing = SecurityContextHolder.getContext().getAuthentication();
+			if (existing != null && !(existing instanceof AnonymousAuthenticationToken)) {
+				filterChain.doFilter(request, response);
+				return;
+			}
 			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 			return;
 		}

@@ -10,8 +10,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -24,6 +26,11 @@ public class GlobalExceptionHandler {
 
 	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+	@ExceptionHandler(AccessDeniedException.class)
+	public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
+		return build(HttpStatus.FORBIDDEN, "ACCESS_DENIED", ex.getMessage(), request);
+	}
+
 	@ExceptionHandler(ResourceNotFoundException.class)
 	public ResponseEntity<ProblemDetail> handleNotFound(ResourceNotFoundException ex, WebRequest request) {
 		return build(HttpStatus.NOT_FOUND, ex.getErrorCode(), ex.getMessage(), request);
@@ -32,6 +39,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(BankException.class)
 	public ResponseEntity<ProblemDetail> handleBankException(BankException ex, WebRequest request) {
 		return build(HttpStatus.BAD_REQUEST, ex.getErrorCode(), ex.getMessage(), request);
+	}
+
+	@ExceptionHandler(MissingRequestHeaderException.class)
+	public ResponseEntity<ProblemDetail> handleMissingHeader(MissingRequestHeaderException ex, WebRequest request) {
+		return build(HttpStatus.BAD_REQUEST, "MISSING_REQUEST_HEADER", ex.getMessage(), request);
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

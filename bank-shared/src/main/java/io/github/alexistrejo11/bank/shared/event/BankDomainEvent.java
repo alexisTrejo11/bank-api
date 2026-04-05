@@ -1,5 +1,6 @@
 package io.github.alexistrejo11.bank.shared.event;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
@@ -7,6 +8,7 @@ import java.util.UUID;
 /**
  * Superclass for domain events (internal bus). Subclasses add payload fields; publish after successful commits.
  */
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY, getterVisibility = JsonAutoDetect.Visibility.NONE)
 public abstract class BankDomainEvent {
 
 	private final UUID eventId;

@@ -21,3 +21,5 @@ bank:
       enabled: false
   payments:
     redis-idempotency: false
+  loans:
+    internal-funding-account-id: aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
