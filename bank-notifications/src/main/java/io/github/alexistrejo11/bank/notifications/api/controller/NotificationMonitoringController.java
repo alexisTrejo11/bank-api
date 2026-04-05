@@ -2,8 +2,11 @@ package io.github.alexistrejo11.bank.notifications.api.controller;
 
 import io.github.alexistrejo11.bank.notifications.api.dto.response.NotificationRecordsPageResponse;
 import io.github.alexistrejo11.bank.notifications.api.dto.response.NotificationSummaryResponse;
-import io.github.alexistrejo11.bank.notifications.application.NotificationMonitoringService;
+import io.github.alexistrejo11.bank.notifications.api.mapper.NotificationApiMapper;
+import io.github.alexistrejo11.bank.notifications.application.handler.query.GetNotificationSummaryHandler;
+import io.github.alexistrejo11.bank.notifications.application.handler.query.ListNotificationRecordsHandler;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationChannel;
+import io.github.alexistrejo11.bank.notifications.domain.model.NotificationRecordFilters;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationStatus;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
 import org.springframework.data.domain.Pageable;
@@ -20,10 +23,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/notifications/monitoring")
 public class NotificationMonitoringController {
 
-	private final NotificationMonitoringService notificationMonitoringService;
+	private final ListNotificationRecordsHandler listNotificationRecordsHandler;
+	private final GetNotificationSummaryHandler getNotificationSummaryHandler;
 
-	public NotificationMonitoringController(NotificationMonitoringService notificationMonitoringService) {
-		this.notificationMonitoringService = notificationMonitoringService;
+	public NotificationMonitoringController(
+			ListNotificationRecordsHandler listNotificationRecordsHandler,
+			GetNotificationSummaryHandler getNotificationSummaryHandler
+	) {
+		this.listNotificationRecordsHandler = listNotificationRecordsHandler;
+		this.getNotificationSummaryHandler = getNotificationSummaryHandler;
 	}
 
 	@GetMapping("/records")
@@ -33,19 +41,17 @@ public class NotificationMonitoringController {
 			@RequestParam(required = false) NotificationChannel channel,
 			@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
 	) {
-		var page = notificationMonitoringService.list(status, channel, pageable);
-		var body = new NotificationRecordsPageResponse(
-				page.getContent(),
-				page.getNumber(),
-				page.getSize(),
-				page.getTotalElements()
+		var page = listNotificationRecordsHandler.handle(
+				new NotificationRecordFilters(status, channel),
+				pageable.getPageNumber(),
+				pageable.getPageSize()
 		);
-		return ResponseEntity.ok(ApiResponse.success(body));
+		return ResponseEntity.ok(ApiResponse.success(NotificationApiMapper.toPageResponse(page)));
 	}
 
 	@GetMapping("/summary")
 	@PreAuthorize("hasAuthority('notifications:read')")
 	public ResponseEntity<ApiResponse<NotificationSummaryResponse>> summary() {
-		return ResponseEntity.ok(ApiResponse.success(notificationMonitoringService.summary()));
+		return ResponseEntity.ok(ApiResponse.success(NotificationApiMapper.toSummaryResponse(getNotificationSummaryHandler.handle())));
 	}
 }

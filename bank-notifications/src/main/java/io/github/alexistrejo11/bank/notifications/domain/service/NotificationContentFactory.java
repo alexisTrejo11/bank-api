@@ -1,4 +1,4 @@
-package io.github.alexistrejo11.bank.notifications.application;
+package io.github.alexistrejo11.bank.notifications.domain.service;
 
 import io.github.alexistrejo11.bank.notifications.domain.model.GenericEmailContent;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationTemplateKey;
