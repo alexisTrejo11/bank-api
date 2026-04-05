@@ -87,11 +87,11 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 
 | ID | Track item | Done |
 |----|------------|------|
-| P4-E | `AuditRecord` entity + persistence | [ ] |
-| P4-F | Append-only DB trigger migration | [ ] |
-| P4-L | `AuditEventListener` (all `BankDomainEvent`s) | [ ] |
-| P4-Q | Query endpoint with filters | [ ] |
-| P4-T | Tests | [ ] |
+| P4-E | `AuditRecord` entity + persistence | [x] |
+| P4-F | Append-only DB trigger migration | [x] |
+| P4-L | `AuditEventListener` (all `BankDomainEvent`s) | [x] |
+| P4-Q | Query endpoint with filters | [x] |
+| P4-T | Tests | [x] |
 
 - **PR:** 
 - **Merged at / SHA on `develop`:** 
@@ -173,7 +173,7 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 | 1 | `bank-shared/src/main/java/...` — VO, Result, exceptions, events, `ApiResponse`, `GlobalExceptionHandler` |
 | 2 | `iam/...`, JWT/security, `/auth/*`, Flyway IAM |
 | 3 | `accounts/...`, ledger, posting, REST, listener stub |
-| 4 | `audit/...`, trigger, listener, query API |
+| 4 | `bank-audit/...`, trigger, listener, query API |
 | 5 | `payments/...`, Redis idempotency, transfer FSM, events |
 | 6 | `loans/...`, schedule, origination, repayment |
 | 7 | `notifications/...`, templates, log |
