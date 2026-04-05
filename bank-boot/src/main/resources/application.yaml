@@ -19,3 +19,5 @@ bank:
   iam:
     redis:
       enabled: false
+  payments:
+    redis-idempotency: false

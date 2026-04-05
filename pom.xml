@@ -18,6 +18,7 @@
 		<module>bank-iam</module>
 		<module>bank-accounts</module>
 		<module>bank-audit</module>
+		<module>bank-payments</module>
 		<module>bank-boot</module>
 	</modules>
 	<properties>

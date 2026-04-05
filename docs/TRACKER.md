@@ -104,11 +104,11 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 
 | ID | Track item | Done |
 |----|------------|------|
-| P5-A | Transfer aggregate + state machine | [ ] |
-| P5-I | Idempotency via Redis | [ ] |
-| P5-X | Transfer execution + event publishing | [ ] |
-| P5-W | `TransferCompletedEvent` → accounts + audit + notifications | [ ] |
-| P5-T | Tests | [ ] |
+| P5-A | Transfer aggregate + state machine | [x] |
+| P5-I | Idempotency via Redis | [x] |
+| P5-X | Transfer execution + event publishing | [x] |
+| P5-W | `TransferCompletedEvent` → accounts + audit + notifications | [x] |
+| P5-T | Tests | [x] |
 
 - **PR:** 
 - **Merged at / SHA on `develop`:** 
@@ -174,7 +174,7 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 | 2 | `iam/...`, JWT/security, `/auth/*`, Flyway IAM |
 | 3 | `accounts/...`, ledger, posting, REST, listener stub |
 | 4 | `bank-audit/...`, trigger, listener, query API |
-| 5 | `payments/...`, Redis idempotency, transfer FSM, events |
+| 5 | `bank-payments/...`, Redis/in-memory idempotency, transfers, events; boot `AccountLedgerInfoAdapter` |
 | 6 | `loans/...`, schedule, origination, repayment |
 | 7 | `notifications/...`, templates, log |
 | 8 | metrics, logback, Grafana provisioning, seed SQL, release tag |
