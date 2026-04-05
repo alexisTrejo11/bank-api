@@ -4,7 +4,7 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 
 **Legend:** `[ ]` open | `[x]` done | **PR** = link to merged pull request | **Issue** = GitHub issue number from [ISSUES.md](ISSUES.md)
 
-**Web (after push):** `https://github.com/<owner>/<repo>/blob/develop/docs/TRACKER.md`
+**Web (after push):** `https://github.com/<owner>/<repo>/blob/develop/docs/v0.1.0/TRACKER.md`
 
 ---
 
@@ -14,13 +14,13 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 
 | ID | Track item | Done |
 |----|------------|------|
-| P0-G | Gradle: `settings.gradle.kts` (or `.gradle`), root `build.gradle.kts` | [ ] |
-| P0-M | Submodule stubs: `shared/build.gradle.kts`, `iam/build.gradle.kts`, … | [ ] |
+| P0-G | Maven: root `pom.xml` (parent `bank-parent`), `.mvn/wrapper` | [ ] |
+| P0-M | Module POMs: `bank-shared/pom.xml`, `bank-boot/pom.xml`, `bank-iam/pom.xml`, … | [ ] |
 | P0-D | `docker-compose.yml` (postgres, redis, prometheus, grafana, ELK) | [ ] |
-| P0-Y | Root `application.yml` + environment variable wiring | [ ] |
-| P0-F | Flyway baseline `V1__init.sql` (may be empty) | [ ] |
-| P0-CI | [.github/workflows/ci.yml](../.github/workflows/ci.yml) — build + test on push | [ ] |
-| P0-R | [README.md](../README.md) — setup instructions | [ ] |
+| P0-Y | `bank-boot` `application.yaml` + environment variable wiring | [ ] |
+| P0-F | Flyway migrations under `bank-*/src/main/resources/db/migration/` | [ ] |
+| P0-CI | [.github/workflows/ci.yml](../../.github/workflows/ci.yml) — build + test on push | [ ] |
+| P0-R | [README.md](../../README.md) — setup instructions | [ ] |
 
 - **PR:** 
 - **Merged at / SHA on `develop`:** 
@@ -169,7 +169,7 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 
 | Phase | Key paths / artifacts |
 |-------|------------------------|
-| 0 | `settings.gradle.kts`, `docker-compose.yml`, `bank-boot/src/main/resources/application.yml`, `db/migration/V1__init.sql`, `.github/workflows/ci.yml` |
+| 0 | Root `pom.xml`, `bank-*/pom.xml`, `docker-compose.yml`, `bank-boot/src/main/resources/application.yaml`, `bank-*/src/main/resources/db/migration/`, `.github/workflows/ci.yml` |
 | 1 | `bank-shared/src/main/java/...` — VO, Result, exceptions, events, `ApiResponse`, `GlobalExceptionHandler` |
 | 2 | `iam/...`, JWT/security, `/auth/*`, Flyway IAM |
 | 3 | `accounts/...`, ledger, posting, REST, listener stub |
@@ -179,4 +179,4 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 | 7 | `notifications/...`, templates, log |
 | 8 | metrics, logback, Grafana provisioning, seed SQL, release tag |
 
-Exact packages follow `io.github.alexistrejo11.bank.{module}` (see [README.md](../README.md)).
+Exact packages follow `io.github.alexistrejo11.bank.{module}` (see [README.md](../../README.md)).

@@ -48,3 +48,5 @@ Configure in the repository **Settings**:
 - **Branches → Rulesets** (or branch protection): require a pull request before merging for `main` and `develop`; restrict direct pushes as appropriate for your workflow.
 
 See also [LABELS.md](LABELS.md), [ISSUES.md](ISSUES.md), and [TRACKER.md](TRACKER.md) for labels, issues, and progress.
+
+For **atomic commits per Maven module** and **cherry-picking** onto feature branches (English messages), see [MONOREPO_ATOMIC_COMMITS.md](../MONOREPO_ATOMIC_COMMITS.md).

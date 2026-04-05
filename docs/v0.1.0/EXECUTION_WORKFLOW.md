@@ -40,3 +40,5 @@ Use this after Phase 0 ([TRACKER.md](TRACKER.md) Phase 0 complete) is merged to 
 3. Port to `develop` (merge or cherry-pick).
 
 See [GITHUB_STRATEGY.md](GITHUB_STRATEGY.md) for branch rules.
+
+If you integrated several modules on `develop` first and need **module-pure** feature branches, use [MONOREPO_ATOMIC_COMMITS.md](../MONOREPO_ATOMIC_COMMITS.md) (per-module commits, then cherry-pick onto `feature/*`).

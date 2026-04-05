@@ -10,7 +10,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) style so histor
 
 **Examples:**
 
-- `feat(infra): add Gradle multi-project and Docker Compose stack`
+- `feat(infra): add Maven multi-module and Docker Compose stack`
 - `feat(iam): implement JWT auth with RBAC`
 - `feat(accounts): add double-entry posting and REST`
 - `fix(payments): correct idempotency key TTL handling`

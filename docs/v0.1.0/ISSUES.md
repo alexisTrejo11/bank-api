@@ -8,7 +8,7 @@ After creation, record the Issue number in this file and in [TRACKER.md](TRACKER
 
 | Impl ID | Suggested title | Labels (minimum) | Branch |
 |---------|-----------------|------------------|--------|
-| P0 | Project skeleton: Gradle multi-module, Docker Compose, Flyway baseline, CI, README | `infra`, `feat` (+ optional `phase:0`) | `feature/project-scaffold` |
+| P0 | Project skeleton: Maven multi-module, Docker Compose, Flyway baseline, CI, README | `infra`, `feat` (+ optional `phase:0`) | `feature/project-scaffold` |
 | P1 | Shared module: value objects, Result, exceptions, events, API envelope | `feat`, `module:shared`, `test` | `feature/shared-module` |
 | P2 | IAM: domain, JWT RS256, refresh, blocklist, security, auth REST | `feat`, `module:iam`, `test` | `feature/iam-module` |
 | P3 | Accounts: aggregate, ledger, posting, REST, transfer listener stub | `feat`, `module:accounts`, `test` | `feature/accounts-module` |
@@ -47,7 +47,7 @@ Use this in each Issue description:
 (Summary from the title table.)
 
 ## Acceptance
-- [ ] Tracks in docs/TRACKER.md updated when work merges
+- [ ] Tracks in docs/v0.1.0/TRACKER.md updated when work merges
 - [ ] PR uses Conventional Commits title and `Closes #<this issue>`
 ```
 

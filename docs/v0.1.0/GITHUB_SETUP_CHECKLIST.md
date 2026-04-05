@@ -38,7 +38,7 @@ Create **one issue per row**. Copy the **Title** and **Body** into GitHub **New 
 
 ### P0 — Project skeleton
 
-- **Title:** `Project skeleton: Gradle multi-module, Docker Compose, Flyway baseline, CI, README`
+- **Title:** `Project skeleton: Maven multi-module, Docker Compose, Flyway baseline, CI, README`
 - **Labels:** `feat`, `infra` (+ `phase:0` if you use phase labels)
 
 ```markdown
@@ -49,10 +49,10 @@ P0
 `feature/project-scaffold`
 
 ## Scope
-Gradle multi-project (root + submodule stub per domain), docker-compose (postgres, redis, prometheus, grafana, elk), root application.yml + env wiring, Flyway `V1__init.sql` baseline, GitHub Actions CI (build + test), README setup instructions.
+Maven multi-module (parent `pom.xml` + `bank-*` module POMs), docker-compose (postgres, redis, prometheus, grafana, elk), `bank-boot` `application.yaml` + env wiring, Flyway migrations under each module’s `src/main/resources/db/migration/`, GitHub Actions CI (build + test), README setup instructions.
 
 ## Acceptance
-- [ ] Tracks in docs/TRACKER.md updated when work merges
+- [ ] Tracks in docs/v0.1.0/TRACKER.md updated when work merges
 - [ ] PR uses Conventional Commits title and `Closes #<this issue>`
 ```
 
@@ -72,7 +72,7 @@ P1
 Money, AccountId, UserId, LoanId, TransferId; Result<T>; BankException hierarchy; BankDomainEvent; ApiResponse<T>; GlobalExceptionHandler skeleton.
 
 ## Acceptance
-- [ ] Tracks in docs/TRACKER.md updated when work merges
+- [ ] Tracks in docs/v0.1.0/TRACKER.md updated when work merges
 - [ ] PR uses Conventional Commits title and `Closes #<this issue>`
 ```
 
@@ -92,7 +92,7 @@ P2
 User, Role, Permission; Flyway IAM + seed roles; JWT RS256, refresh, blocklist; Spring Security; /auth/register, /login, /refresh, /logout; @PreAuthorize; unit + integration tests.
 
 ## Acceptance
-- [ ] Tracks in docs/TRACKER.md updated when work merges
+- [ ] Tracks in docs/v0.1.0/TRACKER.md updated when work merges
 - [ ] PR uses Conventional Commits title and `Closes #<this issue>`
 ```
 
@@ -112,7 +112,7 @@ P3
 Account aggregate + LedgerEntry; migrations; double-entry posting; REST; AccountsTransferListener stub; tests.
 
 ## Acceptance
-- [ ] Tracks in docs/TRACKER.md updated when work merges
+- [ ] Tracks in docs/v0.1.0/TRACKER.md updated when work merges
 - [ ] PR uses Conventional Commits title and `Closes #<this issue>`
 ```
 
@@ -132,7 +132,7 @@ P4
 AuditRecord; append-only trigger migration; AuditEventListener for BankDomainEvent; filtered query endpoint; tests.
 
 ## Acceptance
-- [ ] Tracks in docs/TRACKER.md updated when work merges
+- [ ] Tracks in docs/v0.1.0/TRACKER.md updated when work merges
 - [ ] PR uses Conventional Commits title and `Closes #<this issue>`
 ```
 
@@ -152,7 +152,7 @@ P5
 Transfer aggregate + state machine; Redis idempotency; execution + events; TransferCompletedEvent wired to accounts, audit, notifications; tests.
 
 ## Acceptance
-- [ ] Tracks in docs/TRACKER.md updated when work merges
+- [ ] Tracks in docs/v0.1.0/TRACKER.md updated when work merges
 - [ ] PR uses Conventional Commits title and `Closes #<this issue>`
 ```
 
@@ -172,7 +172,7 @@ P6
 Loan aggregate + repayment schedule; origination + disbursement event; repayment endpoint; tests.
 
 ## Acceptance
-- [ ] Tracks in docs/TRACKER.md updated when work merges
+- [ ] Tracks in docs/v0.1.0/TRACKER.md updated when work merges
 - [ ] PR uses Conventional Commits title and `Closes #<this issue>`
 ```
 
@@ -192,7 +192,7 @@ P7
 Event listeners; template engine + console stub; notification_log persistence; tests.
 
 ## Acceptance
-- [ ] Tracks in docs/TRACKER.md updated when work merges
+- [ ] Tracks in docs/v0.1.0/TRACKER.md updated when work merges
 - [ ] PR uses Conventional Commits title and `Closes #<this issue>`
 ```
 
@@ -212,7 +212,7 @@ P8
 Micrometer per module; Logback JSON + MDC; Grafana provisioning; Swagger + R__seed_demo_data.sql; release branch merge to main; tag v1.0.0.
 
 ## Acceptance
-- [ ] Tracks in docs/TRACKER.md updated when work merges
+- [ ] Tracks in docs/v0.1.0/TRACKER.md updated when work merges
 - [ ] PR uses Conventional Commits title and `Closes #<this issue>`
 ```
 
