@@ -1,4 +1,4 @@
-package io.github.alexistrejo11.bank.payments.application;
+package io.github.alexistrejo11.bank.payments.application.handler.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -6,11 +6,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.github.alexistrejo11.bank.payments.application.idempotency.TransferIdempotencyCache;
 import io.github.alexistrejo11.bank.payments.domain.port.out.AccountLedgerInfoPort;
 import io.github.alexistrejo11.bank.payments.domain.port.out.AccountLedgerInfoPort.AccountLedgerInfo;
 import io.github.alexistrejo11.bank.payments.domain.port.out.TransferIdempotencyPort;
-import io.github.alexistrejo11.bank.payments.infrastructure.persistence.entity.TransferEntity;
-import io.github.alexistrejo11.bank.payments.infrastructure.persistence.repository.TransferJpaRepository;
+import io.github.alexistrejo11.bank.payments.domain.port.out.TransferRepository;
 import io.github.alexistrejo11.bank.shared.event.TransferCompletedEvent;
 import io.github.alexistrejo11.bank.shared.ids.AccountId;
 import io.github.alexistrejo11.bank.shared.ids.UserId;
@@ -27,10 +27,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
-class TransferApplicationServiceTest {
+class InitiateTransferHandlerTest {
 
 	@Mock
-	TransferJpaRepository transferRepository;
+	TransferRepository transferRepository;
 
 	@Mock
 	AccountLedgerInfoPort accountLedgerInfoPort;
@@ -41,7 +41,7 @@ class TransferApplicationServiceTest {
 	@Mock
 	ApplicationEventPublisher eventPublisher;
 
-	TransferApplicationService service;
+	InitiateTransferHandler handler;
 
 	final UserId userId = UserId.random();
 	final UUID idem = UUID.randomUUID();
@@ -50,7 +50,8 @@ class TransferApplicationServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		service = new TransferApplicationService(transferRepository, accountLedgerInfoPort, idempotencyPort, eventPublisher);
+		var cache = new TransferIdempotencyCache(idempotencyPort);
+		handler = new InitiateTransferHandler(transferRepository, accountLedgerInfoPort, cache, eventPublisher);
 	}
 
 	@Test
@@ -60,7 +61,7 @@ class TransferApplicationServiceTest {
 		when(accountLedgerInfoPort.find(AccountId.of(src)))
 				.thenReturn(Optional.of(new AccountLedgerInfo(src, UserId.random(), "USD", new BigDecimal("100"), true)));
 
-		Result<?> r = service.initiate(userId, idem, src, tgt, new BigDecimal("10"), "USD");
+		Result<?> r = handler.handle(userId, idem, src, tgt, new BigDecimal("10"), "USD");
 		assertThat(r.isFailure()).isTrue();
 		verify(transferRepository, never()).save(any());
 	}
@@ -73,9 +74,9 @@ class TransferApplicationServiceTest {
 				.thenReturn(Optional.of(new AccountLedgerInfo(src, userId, "USD", new BigDecimal("100"), true)));
 		when(accountLedgerInfoPort.find(AccountId.of(tgt)))
 				.thenReturn(Optional.of(new AccountLedgerInfo(tgt, UserId.random(), "USD", BigDecimal.ZERO, true)));
-		when(transferRepository.save(any(TransferEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+		when(transferRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-		Result<?> r = service.initiate(userId, idem, src, tgt, new BigDecimal("10"), "USD");
+		Result<?> r = handler.handle(userId, idem, src, tgt, new BigDecimal("10"), "USD");
 		assertThat(r.isSuccess()).isTrue();
 		ArgumentCaptor<TransferCompletedEvent> cap = ArgumentCaptor.forClass(TransferCompletedEvent.class);
 		verify(eventPublisher).publishEvent(cap.capture());

@@ -2,7 +2,8 @@ package io.github.alexistrejo11.bank.payments.api.controller;
 
 import io.github.alexistrejo11.bank.payments.api.dto.request.TransferFundsRequest;
 import io.github.alexistrejo11.bank.payments.api.dto.response.TransferResponse;
-import io.github.alexistrejo11.bank.payments.application.TransferApplicationService;
+import io.github.alexistrejo11.bank.payments.application.handler.command.InitiateTransferHandler;
+import io.github.alexistrejo11.bank.payments.application.handler.command.ReverseTransferHandler;
 import io.github.alexistrejo11.bank.iam.infrastructure.security.IamUserPrincipal;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
 import io.github.alexistrejo11.bank.shared.ids.UserId;
@@ -23,10 +24,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/payments")
 public class TransferController {
 
-	private final TransferApplicationService transferApplicationService;
+	private final InitiateTransferHandler initiateTransferHandler;
+	private final ReverseTransferHandler reverseTransferHandler;
 
-	public TransferController(TransferApplicationService transferApplicationService) {
-		this.transferApplicationService = transferApplicationService;
+	public TransferController(InitiateTransferHandler initiateTransferHandler, ReverseTransferHandler reverseTransferHandler) {
+		this.initiateTransferHandler = initiateTransferHandler;
+		this.reverseTransferHandler = reverseTransferHandler;
 	}
 
 	@PostMapping("/transfers")
@@ -37,7 +40,7 @@ public class TransferController {
 			@Valid @RequestBody TransferFundsRequest request
 	) {
 		UserId userId = principal.userId();
-		Result<TransferResponse> result = transferApplicationService.initiate(
+		Result<TransferResponse> result = initiateTransferHandler.handle(
 				userId,
 				idempotencyKey,
 				request.sourceAccountId(),
@@ -55,7 +58,7 @@ public class TransferController {
 			@RequestHeader("Idempotency-Key") UUID idempotencyKey,
 			@PathVariable UUID transferId
 	) {
-		Result<TransferResponse> result = transferApplicationService.reverse(principal.userId(), idempotencyKey, transferId);
+		Result<TransferResponse> result = reverseTransferHandler.handle(principal.userId(), idempotencyKey, transferId);
 		return toResponse(result);
 	}
 

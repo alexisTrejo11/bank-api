@@ -1,4 +1,4 @@
-package io.github.alexistrejo11.bank.payments.infrastructure.idempotency;
+package io.github.alexistrejo11.bank.payments.application.idempotency;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.github.alexistrejo11.bank.payments.api.dto.response.TransferResponse;
