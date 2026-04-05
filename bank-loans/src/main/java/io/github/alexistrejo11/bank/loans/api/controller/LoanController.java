@@ -3,7 +3,14 @@ package io.github.alexistrejo11.bank.loans.api.controller;
 import io.github.alexistrejo11.bank.loans.api.dto.request.OriginateLoanRequest;
 import io.github.alexistrejo11.bank.loans.api.dto.response.LoanDetailResponse;
 import io.github.alexistrejo11.bank.loans.api.dto.response.PayRepaymentResponse;
-import io.github.alexistrejo11.bank.loans.application.LoanApplicationService;
+import io.github.alexistrejo11.bank.loans.application.handler.command.ApproveLoanHandler;
+import io.github.alexistrejo11.bank.loans.application.handler.command.OriginateLoanHandler;
+import io.github.alexistrejo11.bank.loans.application.handler.command.PayLoanRepaymentHandler;
+import io.github.alexistrejo11.bank.loans.application.handler.query.GetLoanDetailHandler;
+import io.github.alexistrejo11.bank.loans.domain.command.ApproveLoanCommand;
+import io.github.alexistrejo11.bank.loans.domain.command.OriginateLoanCommand;
+import io.github.alexistrejo11.bank.loans.domain.command.PayLoanRepaymentCommand;
+import io.github.alexistrejo11.bank.loans.domain.query.GetLoanDetailQuery;
 import io.github.alexistrejo11.bank.iam.infrastructure.security.IamUserPrincipal;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
 import io.github.alexistrejo11.bank.shared.ids.UserId;
@@ -24,10 +31,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/loans")
 public class LoanController {
 
-	private final LoanApplicationService loanApplicationService;
+	private final OriginateLoanHandler originateLoanHandler;
+	private final ApproveLoanHandler approveLoanHandler;
+	private final GetLoanDetailHandler getLoanDetailHandler;
+	private final PayLoanRepaymentHandler payLoanRepaymentHandler;
 
-	public LoanController(LoanApplicationService loanApplicationService) {
-		this.loanApplicationService = loanApplicationService;
+	public LoanController(
+			OriginateLoanHandler originateLoanHandler,
+			ApproveLoanHandler approveLoanHandler,
+			GetLoanDetailHandler getLoanDetailHandler,
+			PayLoanRepaymentHandler payLoanRepaymentHandler
+	) {
+		this.originateLoanHandler = originateLoanHandler;
+		this.approveLoanHandler = approveLoanHandler;
+		this.getLoanDetailHandler = getLoanDetailHandler;
+		this.payLoanRepaymentHandler = payLoanRepaymentHandler;
 	}
 
 	@PostMapping
@@ -37,7 +55,14 @@ public class LoanController {
 			@Valid @RequestBody OriginateLoanRequest request
 	) {
 		UserId userId = principal.userId();
-		return ResponseEntity.ok(ApiResponse.success(loanApplicationService.originate(userId, request)));
+		var cmd = new OriginateLoanCommand(
+				request.checkingAccountId(),
+				request.principal(),
+				request.currency(),
+				request.monthlyInterestRate(),
+				request.termMonths()
+		);
+		return ResponseEntity.ok(ApiResponse.success(originateLoanHandler.handle(userId, cmd)));
 	}
 
 	@PostMapping("/{loanId}/approve")
@@ -46,7 +71,7 @@ public class LoanController {
 			@AuthenticationPrincipal IamUserPrincipal principal,
 			@PathVariable UUID loanId
 	) {
-		return ResponseEntity.ok(ApiResponse.success(loanApplicationService.approve(principal.userId(), loanId)));
+		return ResponseEntity.ok(ApiResponse.success(approveLoanHandler.handle(principal.userId(), new ApproveLoanCommand(loanId))));
 	}
 
 	@GetMapping("/{loanId}")
@@ -55,7 +80,7 @@ public class LoanController {
 			@AuthenticationPrincipal IamUserPrincipal principal,
 			@PathVariable UUID loanId
 	) {
-		return ResponseEntity.ok(ApiResponse.success(loanApplicationService.get(principal.userId(), loanId)));
+		return ResponseEntity.ok(ApiResponse.success(getLoanDetailHandler.handle(new GetLoanDetailQuery(principal.userId(), loanId))));
 	}
 
 	@PostMapping("/{loanId}/repayments/{repaymentId}/pay")
@@ -65,7 +90,10 @@ public class LoanController {
 			@PathVariable UUID loanId,
 			@PathVariable UUID repaymentId
 	) {
-		Result<PayRepaymentResponse> result = loanApplicationService.payInstallment(principal.userId(), loanId, repaymentId);
+		Result<PayRepaymentResponse> result = payLoanRepaymentHandler.handle(
+				principal.userId(),
+				new PayLoanRepaymentCommand(loanId, repaymentId)
+		);
 		if (!result.isSuccess()) {
 			Result.Failure<?> f = (Result.Failure<?>) result;
 			return ResponseEntity.unprocessableEntity().body(ApiResponse.failure(f.code(), f.message()));
