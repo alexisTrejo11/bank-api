@@ -4,13 +4,15 @@
 
 | Document | Description |
 |----------|-------------|
-| [docs/GITHUB_STRATEGY.md](docs/GITHUB_STRATEGY.md) | Branches, merges, solo PR flow |
-| [docs/PR_CONVENTIONS.md](docs/PR_CONVENTIONS.md) | Conventional Commit titles, PR body, `Closes #` |
-| [docs/LABELS.md](docs/LABELS.md) | GitHub label definitions |
-| [docs/ISSUES.md](docs/ISSUES.md) | Phase ↔ Issue ↔ branch mapping |
-| [docs/TRACKER.md](docs/TRACKER.md) | **Implementation checklist** and PR links |
-| [docs/EXECUTION_WORKFLOW.md](docs/EXECUTION_WORKFLOW.md) | Repeatable PR and release steps (Phases 1–8) |
-| [docs/GITHUB_SETUP_CHECKLIST.md](docs/GITHUB_SETUP_CHECKLIST.md) | Branch protection, labels, Issues P0–P8 (manual; use if `gh` is unavailable) |
+| [docs/README.md](docs/README.md) | Index: v0.1.0 archive vs v0.2.0 roadmap |
+| [docs/v0.2.0/ROADMAP.md](docs/v0.2.0/ROADMAP.md) | **Planned improvements** for release 0.2.0 |
+| [docs/v0.1.0/GITHUB_STRATEGY.md](docs/v0.1.0/GITHUB_STRATEGY.md) | Branches, merges, solo PR flow |
+| [docs/v0.1.0/PR_CONVENTIONS.md](docs/v0.1.0/PR_CONVENTIONS.md) | Conventional Commit titles, PR body, `Closes #` |
+| [docs/v0.1.0/LABELS.md](docs/v0.1.0/LABELS.md) | GitHub label definitions |
+| [docs/v0.1.0/ISSUES.md](docs/v0.1.0/ISSUES.md) | Phase ↔ Issue ↔ branch mapping (P0–P8) |
+| [docs/v0.1.0/TRACKER.md](docs/v0.1.0/TRACKER.md) | **v0.1.0 implementation checklist** and PR links |
+| [docs/v0.1.0/EXECUTION_WORKFLOW.md](docs/v0.1.0/EXECUTION_WORKFLOW.md) | Repeatable PR and release steps (Phases 1–8) |
+| [docs/v0.1.0/GITHUB_SETUP_CHECKLIST.md](docs/v0.1.0/GITHUB_SETUP_CHECKLIST.md) | Branch protection, labels, Issues P0–P8 (manual; use if `gh` is unavailable) |
 
 ### Repository layout
 
@@ -18,7 +20,7 @@
 bank-api/                    ← parent POM (bank-parent)
 ├── bank-shared/             ← reusable library JAR (import this from other Spring modules)
 ├── bank-boot/               ← Spring Boot runnable (depends on bank-shared)
-├── docs/
+├── docs/                    ← v0.1.0 process docs + v0.2.0 roadmap (see docs/README.md)
 └── pom.xml
 ```
 
@@ -50,7 +52,7 @@ Install only the shared kernel for use in another project:
 | Concern | Choice | Rationale |
 |---|---|---|
 | Runtime | Java 21 (LTS) + Spring Boot 3.x | Virtual threads (Project Loom), native compile path for later AWS migration |
-| Architecture | Modular monolith | Each domain is a self-contained Maven/Gradle submodule with its own `api`, `domain`, `infrastructure` packages. No shared mutable state across module boundaries — extraction to a microservice later is a rename, not a rewrite |
+| Architecture | Modular monolith | Each domain is a self-contained Maven submodule with its own `api`, `domain`, `infrastructure` packages. No shared mutable state across module boundaries — extraction to a microservice later is a rename, not a rewrite |
 | API | Spring MVC REST + OpenAPI 3 (SpringDoc) | Contract-first: publish the spec, generate clients |
 | Auth | Spring Security 6 + JWT (RS256) + RBAC | Asymmetric keys allow future service-to-service trust; RBAC roles live in the `iam` module |
 | Persistence | Spring Data JPA + PostgreSQL 16 | ACID transactions critical for double-entry bookkeeping |
@@ -60,7 +62,7 @@ Install only the shared kernel for use in another project:
 | Metrics | Micrometer → Prometheus → Grafana | Actuator endpoints expose `/metrics` in Prometheus format |
 | Logs | Logback (JSON encoder) → Logstash → Elasticsearch → Kibana | Structured logs with `traceId`, `userId`, `moduleId` MDC fields |
 | Testing | JUnit 5 + Mockito + Testcontainers + REST Assured | Real DB and Redis in containers for integration tests |
-| Build | Maven multi-module (`bank-parent` → `bank-shared`, `bank-boot`) | Library in `bank-shared/`; runnable in `bank-boot/` (Gradle optional in later phases) |
+| Build | Maven multi-module (`bank-parent` → `bank-*` modules, `bank-boot`) | Shared kernel in `bank-shared/`; runnable application in `bank-boot/` |
 | Containers | Docker Compose | One file for full local stack |
 
 ---
@@ -269,13 +271,13 @@ Since the monolith is modular from day one, the migration path when you need it:
 
 ### 12. Suggested implementation order
 
-1. Project scaffolding (Gradle multi-project, Docker Compose skeleton, Flyway baseline)
-2. `iam` module — auth, JWT, RBAC (everything else depends on this)
-3. `accounts` module — account CRUD, double-entry ledger
-4. `audit` module — event listener infrastructure
-5. `payments` module — transfers, idempotency, state machine
-6. `loans` module — origination, schedule, repayment
-7. `notifications` module — templates, async dispatch
+1. Project scaffolding (Maven multi-module, Docker Compose skeleton, Flyway migrations per module)
+2. `bank-iam` — auth, JWT, RBAC (everything else depends on this)
+3. `bank-accounts` — account CRUD, double-entry ledger
+4. `bank-audit` — event listener infrastructure
+5. `bank-payments` — transfers, idempotency, state machine
+6. `bank-loans` — origination, schedule, repayment
+7. `bank-notifications` — templates, async dispatch
 8. Observability wiring (Prometheus metrics, JSON logs → ELK)
 9. Seed data + Swagger UI polish for portfolio demo
 

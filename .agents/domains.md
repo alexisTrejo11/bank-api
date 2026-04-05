@@ -139,7 +139,8 @@ State transitions are enforced inside the `Transfer` aggregate — no direct fie
 2. Every notification is logged in `notification_log` with status `SENT` or `FAILED`.
 3. Templates are keyed by `templateKey` string (e.g. `transfer.completed`, `loan.approved`).
 4. In local/dev environment, notifications are logged to console only — no real SMTP.
-5. Notification dispatch is always triggered by an `ApplicationEvent`, never called directly.
+5. In **v0.1.0**, dispatch is triggered by an `ApplicationEvent` listener, not by calling SMTP/template code from other modules directly.
+6. In **v0.2.0**, the same business triggers may arrive via **Kafka** (consumer in `bank-notifications`); the domain still does not depend on broker APIs—only infrastructure adapters do.
 
 ### Events consumed
 | Event | Notification sent |
