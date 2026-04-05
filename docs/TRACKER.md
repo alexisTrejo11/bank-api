@@ -137,10 +137,10 @@ Single source of truth for **what is done**. Update checkboxes and PR links when
 
 | ID | Track item | Done |
 |----|------------|------|
-| P7-L | Event listeners for notification triggers | [ ] |
-| P7-T | Template engine + console stub (dev) | [ ] |
-| P7-P | `notification_log` persistence | [ ] |
-| P7-S | Tests | [ ] |
+| P7-L | Event listeners for notification triggers | [x] |
+| P7-T | Template engine + console stub (dev) | [x] |
+| P7-P | `notification_log` persistence | [x] |
+| P7-S | Tests | [x] |
 
 - **PR:** 
 - **Merged at / SHA on `develop`:** 

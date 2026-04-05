@@ -1,0 +1,5 @@
+INSERT INTO permissions (id, name) VALUES
+    ('10000000-0000-0000-0000-000000000009', 'notifications:read');
+
+INSERT INTO role_permissions (role_id, permission_id) VALUES
+    ('00000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-000000000009');

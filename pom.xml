@@ -20,6 +20,7 @@
 		<module>bank-audit</module>
 		<module>bank-payments</module>
 		<module>bank-loans</module>
+		<module>bank-notifications</module>
 		<module>bank-boot</module>
 	</modules>
 	<properties>

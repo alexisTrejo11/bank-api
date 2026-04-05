@@ -23,3 +23,7 @@ bank:
     redis-idempotency: false
   loans:
     internal-funding-account-id: aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+  notifications:
+    # When set, rendered emails are “sent” to this address via the logging stub (dev only).
+    dev-redirect-email: ""
+    stub-sms-e164: "+15555550100"
