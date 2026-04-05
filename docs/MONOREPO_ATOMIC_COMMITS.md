@@ -1,6 +1,6 @@
 # Atomic commits per module (monorepo)
 
-This workflow keeps **one logical change set per Maven module** when you integrate on `develop` (or a long-lived fix branch). It pairs with [GITHUB_STRATEGY.md](GITHUB_STRATEGY.md), [PR_CONVENTIONS.md](PR_CONVENTIONS.md), and [EXECUTION_WORKFLOW.md](EXECUTION_WORKFLOW.md).
+This workflow keeps **one logical change set per Maven module** when you integrate on `develop` (or a long-lived fix branch). It pairs with [GITHUB_STRATEGY.md](v0.1.0/GITHUB_STRATEGY.md), [PR_CONVENTIONS.md](v0.1.0/PR_CONVENTIONS.md), and [EXECUTION_WORKFLOW.md](v0.1.0/EXECUTION_WORKFLOW.md).
 
 ## Why
 
@@ -11,7 +11,7 @@ This workflow keeps **one logical change set per Maven module** when you integra
 ## Rules (aligns with repo conventions)
 
 - **Commit messages:** [Conventional Commits](https://www.conventionalcommits.org/) in **English**, scope = module name (see [.agents/conventions.md](../.agents/conventions.md) § Git conventions).
-- **Branches:** `feature/{scope}-{short-desc}` per [GITHUB_STRATEGY.md](GITHUB_STRATEGY.md).
+- **Branches:** `feature/{scope}-{short-desc}` per [GITHUB_STRATEGY.md](v0.1.0/GITHUB_STRATEGY.md).
 - **Parent `pom.xml`:** Include the **root** `pom.xml` in a commit only when that commit actually changes the parent (dependency management, modules list, plugin config). Do not bundle unrelated root changes into a module-only commit.
 
 ## Step 1 — Atomic commits on `develop`
@@ -42,7 +42,7 @@ Repeat for `bank-payments`, `bank-audit`, `bank-notifications`, `bank-boot`, `ba
 
 ## Step 2 — Bring changes onto the matching feature branch
 
-Use **cherry-pick** to apply exactly the commit(s) for that module. Branch names should match [ISSUES.md](ISSUES.md) / [TRACKER.md](TRACKER.md) (for example `feature/accounts-module`).
+Use **cherry-pick** to apply exactly the commit(s) for that module. Branch names should match [ISSUES.md](v0.1.0/ISSUES.md) / [TRACKER.md](v0.1.0/TRACKER.md) (for example `feature/accounts-module`).
 
 1. **Identify the commit** (English message, clear scope):
 
@@ -70,7 +70,7 @@ Use **cherry-pick** to apply exactly the commit(s) for that module. Branch names
    git cherry-pick --continue
    ```
 
-5. **Push** and open a PR **into `develop`** per [EXECUTION_WORKFLOW.md](EXECUTION_WORKFLOW.md).
+5. **Push** and open a PR **into `develop`** per [EXECUTION_WORKFLOW.md](v0.1.0/EXECUTION_WORKFLOW.md).
 
 Repeat on `feature/loans-module`, `feature/payments-module`, etc., each with only the SHA(s) for that module.
 
@@ -82,7 +82,7 @@ Repeat on `feature/loans-module`, `feature/payments-module`, etc., each with onl
   - `mvn -pl bank-accounts -am verify`
   - or full `mvn verify` if you touched shared parents or multiple modules in one PR after cherry-picks.
 - **Diff review:** `git diff develop...HEAD` (or the PR diff on GitHub) should only show paths under the intended module(s) plus any intentional shared files.
-- **Message language:** Commit and PR titles stay **English**, per [PR_CONVENTIONS.md](PR_CONVENTIONS.md).
+- **Message language:** Commit and PR titles stay **English**, per [PR_CONVENTIONS.md](v0.1.0/PR_CONVENTIONS.md).
 
 ## When not to use this
 
@@ -91,6 +91,6 @@ Repeat on `feature/loans-module`, `feature/payments-module`, etc., each with onl
 
 ## See also
 
-- [GITHUB_STRATEGY.md](GITHUB_STRATEGY.md) — branch types and merge rules  
-- [EXECUTION_WORKFLOW.md](EXECUTION_WORKFLOW.md) — PR → squash → `develop`  
+- [GITHUB_STRATEGY.md](v0.1.0/GITHUB_STRATEGY.md) — branch types and merge rules  
+- [EXECUTION_WORKFLOW.md](v0.1.0/EXECUTION_WORKFLOW.md) — PR → squash → `develop`  
 - [.agents/conventions.md](../.agents/conventions.md) — commit format and scopes  
