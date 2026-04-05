@@ -6,7 +6,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import io.github.alexistrejo11.bank.audit.infrastructure.persistence.repository.AuditRecordJpaRepository;
 import io.github.alexistrejo11.bank.shared.event.LoanPaidOffEvent;
 import io.github.alexistrejo11.bank.shared.ids.LoanId;
 import java.util.UUID;
@@ -32,9 +31,6 @@ class AuditModuleIT {
 	ApplicationEventPublisher eventPublisher;
 
 	@Autowired
-	AuditRecordJpaRepository auditRecordRepository;
-
-	@Autowired
 	TransactionTemplate transactionTemplate;
 
 	@Autowired
@@ -46,16 +42,17 @@ class AuditModuleIT {
 	@Test
 	@DisplayName("should persist audit row after BankDomainEvent transaction commits")
 	void should_persist_audit_after_event_commit() {
-		long before = auditRecordRepository.count();
+		Long before = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM audit_records", Long.class);
 		transactionTemplate.executeWithoutResult(status -> eventPublisher.publishEvent(new LoanPaidOffEvent(LoanId.random())));
-		assertThat(auditRecordRepository.count()).isEqualTo(before + 1);
+		Long after = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM audit_records", Long.class);
+		assertThat(after).isEqualTo(before + 1);
 	}
 
 	@Test
 	@DisplayName("should reject UPDATE on audit_records via database trigger")
 	void should_reject_update_on_audit_records() {
 		transactionTemplate.executeWithoutResult(status -> eventPublisher.publishEvent(new LoanPaidOffEvent(LoanId.random())));
-		UUID id = auditRecordRepository.findAll().getFirst().getId();
+		UUID id = jdbcTemplate.queryForObject("SELECT id FROM audit_records ORDER BY created_at DESC LIMIT 1", UUID.class);
 		assertThatThrownBy(() -> jdbcTemplate.update("UPDATE audit_records SET entity_type = 'x' WHERE id = ?", id))
 				.isInstanceOf(DataAccessException.class);
 	}
