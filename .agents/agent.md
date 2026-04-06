@@ -40,6 +40,6 @@ docker compose up -d postgres redis kafka   # infra for v0.2.0 (see README + doc
 2. **Domain layer has zero Spring annotations.** Entities, aggregates, and domain services are plain Java.
 3. **Every balance mutation goes through the ledger.** Never update a balance column directly.
 4. **All POST payment/transfer endpoints require `Idempotency-Key` header.**
-5. **Secrets live in environment variables only.** Never in `application.yml` or source code.
+5. **Secrets live in environment variables or a local `.env` file only** (loaded with lowest precedence by `DotEnvEnvironmentPostProcessor` in `bank-boot`). Never commit secrets. See `docs/v0.2.0/CONFIGURATION.md` and `.env.example`.
 6. **`audit_records` table is append-only.** No UPDATE or DELETE ever — enforced by DB trigger.
 7. **Use `Result<T>` for recoverable business errors.** Use exceptions for unexpected/infrastructure failures.

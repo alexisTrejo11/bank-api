@@ -83,10 +83,11 @@ No module may expose its own domain entities to another module.
 ## Security architecture
 ```
 HTTP Request
+  └─► Servlet filters (see `bank-boot` `GlobalRateLimitFilter` when rate limiting enabled)
   └─► Spring Security Filter Chain
         ├── JwtAuthenticationFilter   (validates RS256 JWT, populates SecurityContext)
-        ├── RateLimitingFilter        (Redis counter per IP + userId)
         └── AuthorizationFilter       (@PreAuthorize checks permissions[])
+  └─► MVC `AnnotatedRateLimitInterceptor` (`@RateLimit` on controllers; Redis token bucket)
 
 JWT Claims: { sub: userId, roles: [...], permissions: [...], jti, iat, exp }
 Key pair: RSA-2048, loaded from env (BANK_JWT_PRIVATE_KEY / BANK_JWT_PUBLIC_KEY)

@@ -151,6 +151,7 @@ public class TransferController {
 - Controllers only: validate input, call handler, map result to HTTP response. Zero business logic.
 - Always use `@PreAuthorize` with permission strings (not role strings).
 - Idempotency header required on every POST that mutates financial state.
+- Use `@RateLimit` from `bank-shared` (`RateLimitProfile`, `RateLimitScope`) on sensitive routes; enforcement is wired in `bank-boot` when `bank.rate-limiting.enabled=true` and Redis is available.
 
 ## Validation rules
 ```java

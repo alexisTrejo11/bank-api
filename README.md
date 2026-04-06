@@ -36,10 +36,14 @@ From the repository root (JDK 21+):
 
 ### v0.2.0: PostgreSQL, Redis, and Kafka locally
 
-1. Start infrastructure: `docker compose up -d postgres redis kafka` (database `at_bank`, user/password `bank` / `bank`; Redpanda exposes Kafka on host port **19092**).
-2. **PostgreSQL only (no Redis/Kafka):** `./mvnw -pl bank-boot spring-boot:run -Dspring-boot.run.profiles=postgres`
-3. **Full stack (matches `application-docker.yaml` hostnames):** run the app in a container on the same Compose network, *or* for a host-run JVM use profile **`postgres`** and override Redis/Kafka endpoints via environment (see [.env.example](.env.example)): e.g. `SPRING_DATA_REDIS_HOST=localhost`, `SPRING_KAFKA_BOOTSTRAP_SERVERS=localhost:19092`, plus `BANK_*` toggles for IAM Redis and payment idempotency as needed.
-4. **Default / tests:** in-memory H2, IAM Redis and payment Redis idempotency **off**, notification dispatch **inline** (no broker). See [docs/v0.2.0/DATABASE.md](docs/v0.2.0/DATABASE.md) and [docs/v0.2.0/ROADMAP.md](docs/v0.2.0/ROADMAP.md).
+Configuration is **externalized**: use environment variables and/or a repo-root **`.env`** file (copy from [.env.example](.env.example)). Details: [docs/v0.2.0/CONFIGURATION.md](docs/v0.2.0/CONFIGURATION.md).
+
+1. **`cp .env.example .env`** and set at least **`POSTGRES_PASSWORD`** (and matching **`SPRING_DATASOURCE_PASSWORD`**) before **`docker compose up`**.
+2. Start infrastructure: **`docker compose up -d postgres redis kafka`** (Redpanda exposes Kafka on host port **19092** by default).
+3. **PostgreSQL only (no Redis/Kafka):** export **`SPRING_DATASOURCE_*`** from `.env`, then `./mvnw -pl bank-boot spring-boot:run -Dspring-boot.run.profiles=postgres`
+4. **Full stack (`docker` profile on the host):** set **`SPRING_DATASOURCE_URL`**, **`SPRING_DATA_REDIS_HOST`**, **`SPRING_KAFKA_BOOTSTRAP_SERVERS`**, and related keys (see `.env.example`), then run with **`-Dspring.profiles.active=docker`**.
+5. **Default / tests:** in-memory H2 when **`SPRING_DATASOURCE_URL`** is not set; **`mvn verify`** uses the **`test`** profile. See [docs/v0.2.0/DATABASE.md](docs/v0.2.0/DATABASE.md) and [docs/v0.2.0/ROADMAP.md](docs/v0.2.0/ROADMAP.md).
+6. **Rate limiting:** `bank.rate-limiting.enabled=true` with Redis (on in **`docker`** profile). Global per-IP bucket protects `/api/**`; controllers use `@RateLimit`. Responses use **429** with `Retry-After` and `X-RateLimit-*` headers.
 
 Install only the shared kernel for use in another project:
 
