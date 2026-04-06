@@ -1,12 +1,12 @@
-# Local PostgreSQL (hardcoded for v0.2.0 dev). Prefer env-based secrets for shared environments; see .env.example
+# PostgreSQL profile — set SPRING_DATASOURCE_* (and optional BANK_*) via environment or .env (no secrets in Git).
 spring:
   config:
     activate:
       on-profile: postgres
   datasource:
-    url: jdbc:postgresql://localhost:5432/at_bank
-    username: bank
-    password: bank
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

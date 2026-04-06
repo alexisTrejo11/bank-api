@@ -16,6 +16,8 @@ management:
       enabled: false
 
 bank:
+  rate-limiting:
+    enabled: false
   http:
     cors:
       allowed-origins: []

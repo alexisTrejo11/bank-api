@@ -1,24 +1,25 @@
-# Full stack: docker compose up postgres redis kafka — then run the app with -Dspring.profiles.active=docker
+# Docker Compose stack — provide all values via environment / .env (see .env.example).
 spring:
   config:
     activate:
       on-profile: docker
   datasource:
-    url: jdbc:postgresql://postgres:5432/at_bank
-    username: bank
-    password: bank
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
   data:
     redis:
-      host: redis
-      port: 6379
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
   kafka:
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
     consumer:
-      group-id: bank-notifications
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:bank-notifications}
       auto-offset-reset: earliest
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -30,6 +31,9 @@ management:
       enabled: true
 
 bank:
+  rate-limiting:
+    enabled: true
+    fail-open: true
   iam:
     redis:
       enabled: true
