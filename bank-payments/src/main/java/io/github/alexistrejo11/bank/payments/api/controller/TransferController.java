@@ -6,6 +6,9 @@ import io.github.alexistrejo11.bank.payments.application.handler.command.Initiat
 import io.github.alexistrejo11.bank.payments.application.handler.command.ReverseTransferHandler;
 import io.github.alexistrejo11.bank.iam.infrastructure.security.IamUserPrincipal;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
+import io.github.alexistrejo11.bank.shared.ratelimit.RateLimit;
+import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitProfile;
+import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitScope;
 import io.github.alexistrejo11.bank.shared.ids.UserId;
 import io.github.alexistrejo11.bank.shared.result.Result;
 import jakarta.validation.Valid;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/payments")
+@RateLimit(profile = RateLimitProfile.STRICT, scope = RateLimitScope.PER_USER)
 public class TransferController {
 
 	private final InitiateTransferHandler initiateTransferHandler;
