@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -25,12 +26,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) {
-		String path = pathWithinApplication(request);
-		return path.startsWith("/api/v1/auth/register")
-				|| path.startsWith("/api/v1/auth/login")
-				|| path.startsWith("/api/v1/auth/refresh")
-				|| path.startsWith("/actuator")
-				|| path.startsWith("/error");
+		return SecurityWebPaths.shouldSkipJwtAuthentication(pathWithinApplication(request));
 	}
 
 	private static String pathWithinApplication(HttpServletRequest request) {
@@ -64,7 +60,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			IamUserPrincipal principal = new IamUserPrincipal(parsed.userId(), parsed.email(), parsed.permissions());
 			var auth = new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
 			SecurityContextHolder.getContext().setAuthentication(auth);
-			filterChain.doFilter(request, response);
+			MDC.put("userId", parsed.userId().value().toString());
+			try {
+				filterChain.doFilter(request, response);
+			}
+			finally {
+				MDC.remove("userId");
+			}
 		}
 		catch (Exception e) {
 			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
