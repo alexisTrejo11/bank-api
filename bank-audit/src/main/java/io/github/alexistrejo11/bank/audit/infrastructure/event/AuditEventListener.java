@@ -25,6 +25,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class AuditEventListener {
 
 	private static final Logger log = LoggerFactory.getLogger(AuditEventListener.class);
+	private static final Logger auditChannel = LoggerFactory.getLogger("AUDIT");
 
 	private final AppendAuditRecordHandler appendAuditRecordHandler;
 	private final ObjectMapper objectMapper = new ObjectMapper()
@@ -50,6 +51,14 @@ public class AuditEventListener {
 		UUID id = UuidCreator.getTimeOrderedEpoch();
 		Instant createdAt = Instant.now();
 		UUID actorId = currentActorId();
+		auditChannel.info(
+				"eventCategory=AUDIT eventType={} actorId={} entityType={} entityId={} eventId={}",
+				eventType,
+				actorId,
+				ref.entityType(),
+				ref.entityId(),
+				event.eventId()
+		);
 		appendAuditRecordHandler.handle(new AppendAuditRecordCommand(
 				id,
 				eventType,
