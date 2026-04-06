@@ -8,8 +8,19 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+    locations: classpath:db/migration
+
+management:
+  health:
+    redis:
+      enabled: false
 
 bank:
+  rate-limiting:
+    enabled: false
+  http:
+    cors:
+      allowed-origins: []
   iam:
     redis:
       enabled: false
@@ -20,3 +31,6 @@ bank:
   notifications:
     dev-redirect-email: ""
     stub-sms-e164: "+15555550100"
+    dispatch-mode: direct
+    kafka:
+      enabled: false

@@ -4,7 +4,13 @@ import io.github.alexistrejo11.bank.accounts.api.dto.request.OpenAccountRequest;
 import io.github.alexistrejo11.bank.accounts.api.dto.response.BalanceResponse;
 import io.github.alexistrejo11.bank.accounts.api.dto.response.LedgerPageResponse;
 import io.github.alexistrejo11.bank.accounts.api.dto.response.OpenAccountResponse;
-import io.github.alexistrejo11.bank.accounts.application.AccountApplicationService;
+import io.github.alexistrejo11.bank.accounts.api.mapper.AccountApiMapper;
+import io.github.alexistrejo11.bank.accounts.application.handler.command.OpenAccountHandler;
+import io.github.alexistrejo11.bank.accounts.application.handler.query.GetAccountBalanceHandler;
+import io.github.alexistrejo11.bank.accounts.application.handler.query.GetAccountLedgerHandler;
+import io.github.alexistrejo11.bank.accounts.domain.command.OpenAccountCommand;
+import io.github.alexistrejo11.bank.accounts.domain.query.GetAccountBalanceQuery;
+import io.github.alexistrejo11.bank.accounts.domain.query.GetAccountLedgerQuery;
 import io.github.alexistrejo11.bank.iam.infrastructure.security.IamUserPrincipal;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
 import jakarta.validation.Valid;
@@ -25,10 +31,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/accounts")
 public class AccountController {
 
-	private final AccountApplicationService accountApplicationService;
+	private final OpenAccountHandler openAccountHandler;
+	private final GetAccountBalanceHandler getAccountBalanceHandler;
+	private final GetAccountLedgerHandler getAccountLedgerHandler;
 
-	public AccountController(AccountApplicationService accountApplicationService) {
-		this.accountApplicationService = accountApplicationService;
+	public AccountController(
+			OpenAccountHandler openAccountHandler,
+			GetAccountBalanceHandler getAccountBalanceHandler,
+			GetAccountLedgerHandler getAccountLedgerHandler
+	) {
+		this.openAccountHandler = openAccountHandler;
+		this.getAccountBalanceHandler = getAccountBalanceHandler;
+		this.getAccountLedgerHandler = getAccountLedgerHandler;
 	}
 
 	@PostMapping
@@ -37,7 +51,8 @@ public class AccountController {
 			@AuthenticationPrincipal IamUserPrincipal principal,
 			@Valid @RequestBody OpenAccountRequest request
 	) {
-		return ResponseEntity.ok(ApiResponse.success(accountApplicationService.open(principal.userId(), request)));
+		var opened = openAccountHandler.handle(new OpenAccountCommand(principal.userId(), request.type(), request.currency()));
+		return ResponseEntity.ok(ApiResponse.success(AccountApiMapper.toOpenResponse(opened)));
 	}
 
 	@GetMapping("/{accountId}/balance")
@@ -46,7 +61,8 @@ public class AccountController {
 			@AuthenticationPrincipal IamUserPrincipal principal,
 			@PathVariable UUID accountId
 	) {
-		return ResponseEntity.ok(ApiResponse.success(accountApplicationService.getBalance(principal.userId(), accountId)));
+		var balance = getAccountBalanceHandler.handle(new GetAccountBalanceQuery(principal.userId(), accountId));
+		return ResponseEntity.ok(ApiResponse.success(AccountApiMapper.toBalanceResponse(balance)));
 	}
 
 	@GetMapping("/{accountId}/ledger")
@@ -56,6 +72,12 @@ public class AccountController {
 			@PathVariable UUID accountId,
 			@PageableDefault(size = 20) Pageable pageable
 	) {
-		return ResponseEntity.ok(ApiResponse.success(accountApplicationService.getLedger(principal.userId(), accountId, pageable)));
+		var page = getAccountLedgerHandler.handle(new GetAccountLedgerQuery(
+				principal.userId(),
+				accountId,
+				pageable.getPageNumber(),
+				pageable.getPageSize()
+		));
+		return ResponseEntity.ok(ApiResponse.success(AccountApiMapper.toLedgerPageResponse(page)));
 	}
 }

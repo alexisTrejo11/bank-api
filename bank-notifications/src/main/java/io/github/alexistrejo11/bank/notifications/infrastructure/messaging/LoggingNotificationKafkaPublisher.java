@@ -3,6 +3,7 @@ package io.github.alexistrejo11.bank.notifications.infrastructure.messaging;
 import io.github.alexistrejo11.bank.notifications.domain.port.out.NotificationKafkaPublisherPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
  * Wire a real implementation when the broker is available.
  */
 @Component
+@ConditionalOnProperty(name = "bank.notifications.kafka.enabled", havingValue = "false", matchIfMissing = true)
 public class LoggingNotificationKafkaPublisher implements NotificationKafkaPublisherPort {
 
 	private static final Logger log = LoggerFactory.getLogger(LoggingNotificationKafkaPublisher.class);

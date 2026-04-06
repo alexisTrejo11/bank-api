@@ -2,12 +2,13 @@ package io.github.alexistrejo11.bank.notifications.infrastructure.email;
 
 import io.github.alexistrejo11.bank.notifications.domain.model.GenericEmailContent;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationTemplateKey;
+import io.github.alexistrejo11.bank.notifications.domain.port.out.EmailTemplateRendererPort;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 @Component
-public class ThymeleafEmailBodyRenderer {
+public class ThymeleafEmailBodyRenderer implements EmailTemplateRendererPort {
 
 	private final SpringTemplateEngine templateEngine;
 
@@ -15,7 +16,8 @@ public class ThymeleafEmailBodyRenderer {
 		this.templateEngine = templateEngine;
 	}
 
-	public String render(GenericEmailContent content) {
+	@Override
+	public String renderHtml(GenericEmailContent content) {
 		Context ctx = new Context();
 		ctx.setVariable("title", content.title());
 		ctx.setVariable("lead", content.lead());

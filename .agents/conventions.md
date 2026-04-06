@@ -151,6 +151,7 @@ public class TransferController {
 - Controllers only: validate input, call handler, map result to HTTP response. Zero business logic.
 - Always use `@PreAuthorize` with permission strings (not role strings).
 - Idempotency header required on every POST that mutates financial state.
+- Use `@RateLimit` from `bank-shared` (`RateLimitProfile`, `RateLimitScope`) on sensitive routes; enforcement is wired in `bank-boot` when `bank.rate-limiting.enabled=true` and Redis is available.
 
 ## Validation rules
 ```java
@@ -189,6 +190,10 @@ domain guards for business invariants.
 - Enums stored as `@Enumerated(EnumType.STRING)` always.
 - No bidirectional `@OneToMany` — always navigate from parent to child with a query.
 
+## Configuration and secrets
+- **Never** commit real credentials, JWT private keys, or API keys. Use environment variables or a local `.env` (gitignored); document keys in `.env.example` (v0.2.0 — see `docs/v0.2.0/ROADMAP.md` §8).
+- Spring Boot reads `SPRING_*` and custom `BANK_*` prefixes from the environment; keep `application.yaml` free of production secrets.
+
 ## Logging conventions
 ```java
 // Always use SLF4J, never System.out
@@ -200,6 +205,8 @@ log.error("Transfer failed transferId={} reason={}", id, ex.getMessage(), ex);
 ```
 MDC fields set by filter: `traceId`, `spanId`, `userId`, `module`, `requestId`.
 Never log raw passwords, card numbers, full JWT tokens, or PII beyond userId.
+
+**v0.2.0:** Prefer **JSON log output** for profiles aimed at ELK; keep field names stable so Filebeat/Logstash parsers do not churn (see `.agents/architecture.md` observability section).
 
 ## Testing conventions
 ```java
@@ -245,6 +252,8 @@ test(loans): add integration test for repayment schedule
 docs(api): update OpenAPI spec for transfer endpoint
 ```
 Scope = module name. Breaking changes: add `!` after scope (`feat(iam)!: ...`) and a `BREAKING CHANGE:` footer.
+
+**Monorepo (optional but recommended for large refactors):** Make **one commit per `bank-*` module** on `develop` (include root `pom.xml` only when that commit changes the parent). Then **cherry-pick** each commit onto the matching `feature/<module>-module` branch so PRs stay module-scoped. All commit and PR text in **English**. Full steps: `docs/MONOREPO_ATOMIC_COMMITS.md`.
 
 ## Custom Micrometer metrics (register one per module)
 ```java

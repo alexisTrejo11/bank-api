@@ -1,8 +1,9 @@
 package io.github.alexistrejo11.bank.audit.api.controller;
 
-import io.github.alexistrejo11.bank.audit.application.AuditQueryService;
-import io.github.alexistrejo11.bank.audit.application.AuditRecordQuery;
 import io.github.alexistrejo11.bank.audit.api.dto.response.AuditRecordsPageResponse;
+import io.github.alexistrejo11.bank.audit.api.mapper.AuditApiMapper;
+import io.github.alexistrejo11.bank.audit.application.handler.query.SearchAuditRecordsHandler;
+import io.github.alexistrejo11.bank.audit.domain.model.AuditRecordFilters;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
 import java.time.Instant;
 import java.util.UUID;
@@ -19,10 +20,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/audit")
 public class AuditController {
 
-	private final AuditQueryService auditQueryService;
+	private final SearchAuditRecordsHandler searchAuditRecordsHandler;
 
-	public AuditController(AuditQueryService auditQueryService) {
-		this.auditQueryService = auditQueryService;
+	public AuditController(SearchAuditRecordsHandler searchAuditRecordsHandler) {
+		this.searchAuditRecordsHandler = searchAuditRecordsHandler;
 	}
 
 	@GetMapping("/records")
@@ -36,7 +37,8 @@ public class AuditController {
 			@RequestParam(required = false) Instant to,
 			@PageableDefault(size = 20) Pageable pageable
 	) {
-		AuditRecordQuery query = new AuditRecordQuery(eventType, actorId, entityType, entityId, from, to);
-		return ResponseEntity.ok(ApiResponse.success(auditQueryService.search(query, pageable)));
+		var filters = new AuditRecordFilters(eventType, actorId, entityType, entityId, from, to);
+		var page = searchAuditRecordsHandler.handle(filters, pageable.getPageNumber(), pageable.getPageSize());
+		return ResponseEntity.ok(ApiResponse.success(AuditApiMapper.toPageResponse(page)));
 	}
 }

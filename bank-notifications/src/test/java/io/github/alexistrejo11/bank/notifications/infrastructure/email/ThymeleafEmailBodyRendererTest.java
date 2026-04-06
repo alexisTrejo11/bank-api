@@ -39,7 +39,7 @@ class ThymeleafEmailBodyRendererTest {
 				null,
 				NotificationTemplateKey.GENERIC_MESSAGE
 		);
-		String html = renderer.render(content);
+		String html = renderer.renderHtml(content);
 		assertThat(html).contains("Hello").contains("Lead line").contains("<li>One</li>");
 	}
 
@@ -54,7 +54,7 @@ class ThymeleafEmailBodyRendererTest {
 				null,
 				NotificationTemplateKey.GENERIC_ALERT
 		);
-		String html = renderer.render(content);
+		String html = renderer.renderHtml(content);
 		assertThat(html).contains("#ea580c").contains("Alert");
 	}
 }

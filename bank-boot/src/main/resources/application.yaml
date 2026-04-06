@@ -2,9 +2,14 @@ spring:
   application:
     name: bank
   datasource:
-    url: jdbc:h2:mem:bank;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
-    username: sa
-    password:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:bank;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -13,17 +18,58 @@ spring:
       hibernate.jdbc.time_zone: UTC
   flyway:
     enabled: true
+    locations: classpath:db/migration
 
-# In-memory refresh + JWT blocklist until Redis is wired (Phase 0 / local dev)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    redis:
+      enabled: false
+
+# See .env.example — use BANK_* / SPRING_* environment variables (or a repo-root .env file).
 bank:
+  security:
+    jwt:
+      private-key-pem: ${BANK_SECURITY_JWT_PRIVATE_KEY_PEM:}
+      public-key-pem: ${BANK_SECURITY_JWT_PUBLIC_KEY_PEM:}
+  http:
+    cors:
+      allowed-origins: []
   iam:
     redis:
       enabled: false
   payments:
     redis-idempotency: false
   loans:
-    internal-funding-account-id: aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+    internal-funding-account-id: ${BANK_LOANS_INTERNAL_FUNDING_ACCOUNT_ID:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}
   notifications:
-    # When set, rendered emails are “sent” to this address via the logging stub (dev only).
-    dev-redirect-email: ""
-    stub-sms-e164: "+15555550100"
+    dev-redirect-email: ${BANK_NOTIFICATIONS_DEV_REDIRECT_EMAIL:}
+    stub-sms-e164: ${BANK_NOTIFICATIONS_STUB_SMS_E164:+15555550100}
+    dispatch-mode: direct
+    kafka:
+      enabled: false
+      dispatch-topic: ${BANK_NOTIFICATIONS_KAFKA_DISPATCH_TOPIC:bank.notifications.dispatch}
+      pipeline-topic: ${BANK_NOTIFICATIONS_KAFKA_PIPELINE_TOPIC:bank.notifications.pipeline}
+  rate-limiting:
+    enabled: false
+    fail-open: true
+    global:
+      capacity: 64
+      refill-per-second: 1.0
+    profiles:
+      standard:
+        capacity: 48
+        refill-per-second: 0.8
+      strict:
+        capacity: 12
+        refill-per-second: 0.2
+      sensitive_operations:
+        capacity: 6
+        refill-per-second: 0.1

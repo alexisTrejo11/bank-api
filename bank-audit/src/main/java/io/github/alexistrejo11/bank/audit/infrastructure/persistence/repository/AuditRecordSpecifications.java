@@ -1,6 +1,6 @@
 package io.github.alexistrejo11.bank.audit.infrastructure.persistence.repository;
 
-import io.github.alexistrejo11.bank.audit.application.AuditRecordQuery;
+import io.github.alexistrejo11.bank.audit.domain.model.AuditRecordFilters;
 import io.github.alexistrejo11.bank.audit.infrastructure.persistence.entity.AuditRecordEntity;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
@@ -12,26 +12,26 @@ public final class AuditRecordSpecifications {
 	private AuditRecordSpecifications() {
 	}
 
-	public static Specification<AuditRecordEntity> matching(AuditRecordQuery query) {
+	public static Specification<AuditRecordEntity> matching(AuditRecordFilters filters) {
 		return (root, cq, cb) -> {
 			List<Predicate> parts = new ArrayList<>();
-			if (query.eventType() != null && !query.eventType().isBlank()) {
-				parts.add(cb.equal(root.get("eventType"), query.eventType()));
+			if (filters.eventType() != null && !filters.eventType().isBlank()) {
+				parts.add(cb.equal(root.get("eventType"), filters.eventType()));
 			}
-			if (query.actorId() != null) {
-				parts.add(cb.equal(root.get("actorId"), query.actorId()));
+			if (filters.actorId() != null) {
+				parts.add(cb.equal(root.get("actorId"), filters.actorId()));
 			}
-			if (query.entityType() != null && !query.entityType().isBlank()) {
-				parts.add(cb.equal(root.get("entityType"), query.entityType()));
+			if (filters.entityType() != null && !filters.entityType().isBlank()) {
+				parts.add(cb.equal(root.get("entityType"), filters.entityType()));
 			}
-			if (query.entityId() != null) {
-				parts.add(cb.equal(root.get("entityId"), query.entityId()));
+			if (filters.entityId() != null) {
+				parts.add(cb.equal(root.get("entityId"), filters.entityId()));
 			}
-			if (query.from() != null) {
-				parts.add(cb.greaterThanOrEqualTo(root.get("createdAt"), query.from()));
+			if (filters.from() != null) {
+				parts.add(cb.greaterThanOrEqualTo(root.get("createdAt"), filters.from()));
 			}
-			if (query.to() != null) {
-				parts.add(cb.lessThanOrEqualTo(root.get("createdAt"), query.to()));
+			if (filters.to() != null) {
+				parts.add(cb.lessThanOrEqualTo(root.get("createdAt"), filters.to()));
 			}
 			return parts.isEmpty() ? cb.conjunction() : cb.and(parts.toArray(Predicate[]::new));
 		};
