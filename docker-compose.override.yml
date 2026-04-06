@@ -1,0 +1,11 @@
+# Optional local overrides (this file is merged automatically by `docker compose`).
+# Examples:
+#
+# services:
+#   app:
+#     ports:
+#       - "8080:8080"   # hit Spring directly while debugging (bypass nginx)
+#
+#   kafka:
+#     ports:
+#       - "29092:9092"  # external Kafka clients from the host

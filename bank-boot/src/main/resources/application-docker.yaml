@@ -31,6 +31,9 @@ management:
       enabled: true
 
 bank:
+  # Phase 8 domain-event pipeline: set BANK_KAFKA_ENABLED=true when handlers publish via Kafka.
+  kafka:
+    enabled: ${BANK_KAFKA_ENABLED:false}
   rate-limiting:
     enabled: true
     fail-open: true

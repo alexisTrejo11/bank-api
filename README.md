@@ -34,6 +34,32 @@ From the repository root (JDK 21+):
 ./mvnw clean verify
 ```
 
+### v0.3.0: Full Docker stack (run off your laptop / VPS)
+
+Build and run **nginx + app + Postgres + Redis + Kafka + Prometheus + Grafana + ELK** with one command. See **[docs/v.0.3.0/DOCKER.md](docs/v.0.3.0/DOCKER.md)** (`docker compose up -d --build`).
+
+**Architecture & infra (diagrams, ports, observability):** [docs/v.0.3.0/infrastrcuture.md](docs/v.0.3.0/infrastrcuture.md).
+
+**Modules (Maven):** `bank-shared`, `bank-iam`, `bank-accounts`, `bank-payments`, `bank-loans`, `bank-notifications`, `bank-audit`, `bank-boot`.
+
+**After `docker compose up`, you can:**
+
+| What | URL / notes |
+|------|-------------|
+| **Swagger UI** | `http://localhost/swagger-ui.html` — OpenAPI title **Bank API** `1.0.0`, JWT scheme **bearer-jwt** (Authorize). Operation copy lives in `BankApiDocumentationCatalog`; controllers use `@BankApiOperation` only. |
+| **Grafana** | `http://localhost:3000` (admin password from `GRAFANA_ADMIN_PASSWORD` in `.env`) |
+| **Kibana** | `http://localhost:5601` — index pattern `bank-logs-*` |
+
+**Demo users** (repeatable seed `R__seed_demo_data.sql`; password **`Demo123!`** for all):
+
+| Email | Role |
+|-------|------|
+| `demo.alice@demo.bank` | USER (accounts, payments, loans) |
+| `demo.bob@demo.bank` | USER |
+| `demo.admin@demo.bank` | ADMIN |
+
+The seed includes **10 completed transfers**, **2 active loans** with partial repayments, and **double-entry ledger** rows (`TRANSFER`, `LOAN_DISBURSE`, `LOAN_REPAYMENT`, `DEMO_SEED_FUNDING`).
+
 ### v0.2.0: PostgreSQL, Redis, and Kafka locally
 
 Configuration is **externalized**: use environment variables and/or a repo-root **`.env`** file (copy from [.env.example](.env.example)). Details: [docs/v0.2.0/CONFIGURATION.md](docs/v0.2.0/CONFIGURATION.md).

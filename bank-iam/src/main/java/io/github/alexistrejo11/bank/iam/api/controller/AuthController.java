@@ -11,6 +11,8 @@ import io.github.alexistrejo11.bank.iam.application.handler.command.RefreshToken
 import io.github.alexistrejo11.bank.iam.application.handler.command.RegisterUserHandler;
 import io.github.alexistrejo11.bank.iam.infrastructure.security.IamUserPrincipal;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiKeys;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiOperation;
 import io.github.alexistrejo11.bank.shared.ratelimit.RateLimit;
 import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitProfile;
 import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitScope;
@@ -48,24 +50,28 @@ public class AuthController {
 	}
 
 	@PostMapping("/register")
+	@BankApiOperation(BankApiKeys.AUTH_REGISTER)
 	@RateLimit(profile = RateLimitProfile.STRICT, scope = RateLimitScope.PER_IP)
 	public ResponseEntity<ApiResponse<TokenResponse>> register(@Valid @RequestBody RegisterRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(registerUserHandler.handle(request)));
 	}
 
 	@PostMapping("/login")
+	@BankApiOperation(BankApiKeys.AUTH_LOGIN)
 	@RateLimit(profile = RateLimitProfile.STRICT, scope = RateLimitScope.PER_IP)
 	public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(loginHandler.handle(request)));
 	}
 
 	@PostMapping("/refresh")
+	@BankApiOperation(BankApiKeys.AUTH_REFRESH)
 	@RateLimit(profile = RateLimitProfile.STRICT, scope = RateLimitScope.PER_IP)
 	public ResponseEntity<ApiResponse<TokenResponse>> refresh(@Valid @RequestBody RefreshRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(refreshTokenHandler.handle(request)));
 	}
 
 	@PostMapping("/logout")
+	@BankApiOperation(BankApiKeys.AUTH_LOGOUT)
 	@RateLimit(profile = RateLimitProfile.STANDARD, scope = RateLimitScope.PER_USER)
 	public ResponseEntity<Void> logout(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization) {
 		if (authorization == null || !authorization.startsWith("Bearer ")) {
@@ -76,6 +82,7 @@ public class AuthController {
 	}
 
 	@GetMapping("/me")
+	@BankApiOperation(BankApiKeys.AUTH_ME)
 	@PreAuthorize("isAuthenticated()")
 	@RateLimit(profile = RateLimitProfile.STANDARD, scope = RateLimitScope.PER_USER)
 	public ResponseEntity<ApiResponse<MeResponse>> me(@AuthenticationPrincipal IamUserPrincipal principal) {

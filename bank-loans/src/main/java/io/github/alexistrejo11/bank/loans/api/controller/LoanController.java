@@ -13,6 +13,8 @@ import io.github.alexistrejo11.bank.loans.domain.command.PayLoanRepaymentCommand
 import io.github.alexistrejo11.bank.loans.domain.query.GetLoanDetailQuery;
 import io.github.alexistrejo11.bank.iam.infrastructure.security.IamUserPrincipal;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiKeys;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiOperation;
 import io.github.alexistrejo11.bank.shared.ratelimit.RateLimit;
 import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitProfile;
 import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitScope;
@@ -52,6 +54,7 @@ public class LoanController {
 	}
 
 	@PostMapping
+	@BankApiOperation(BankApiKeys.LOANS_ORIGINATE)
 	@PreAuthorize("hasAuthority('loans:write')")
 	@RateLimit(profile = RateLimitProfile.SENSITIVE_OPERATIONS, scope = RateLimitScope.PER_USER)
 	public ResponseEntity<ApiResponse<LoanDetailResponse>> originate(
@@ -80,6 +83,7 @@ public class LoanController {
 	}
 
 	@GetMapping("/{loanId}")
+	@BankApiOperation(BankApiKeys.LOANS_GET)
 	@PreAuthorize("hasAuthority('loans:read')")
 	public ResponseEntity<ApiResponse<LoanDetailResponse>> get(
 			@AuthenticationPrincipal IamUserPrincipal principal,
@@ -89,6 +93,7 @@ public class LoanController {
 	}
 
 	@PostMapping("/{loanId}/repayments/{repaymentId}/pay")
+	@BankApiOperation(BankApiKeys.LOANS_PAY)
 	@PreAuthorize("hasAuthority('loans:write')")
 	@RateLimit(profile = RateLimitProfile.SENSITIVE_OPERATIONS, scope = RateLimitScope.PER_USER)
 	public ResponseEntity<ApiResponse<PayRepaymentResponse>> pay(

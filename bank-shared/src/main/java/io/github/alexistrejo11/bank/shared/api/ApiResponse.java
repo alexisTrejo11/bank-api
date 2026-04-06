@@ -1,5 +1,6 @@
 package io.github.alexistrejo11.bank.shared.api;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -9,7 +10,12 @@ import java.util.Objects;
  *
  * @param <T> type of {@code data}
  */
-public record ApiResponse<T>(T data, Meta meta, List<ApiError> errors) {
+@Schema(description = "Standard response envelope: `data` on success; `errors` when the request failed logically (e.g. validation or domain rules).")
+public record ApiResponse<T>(
+		@Schema(description = "Success payload; null when `errors` is non-empty.") T data,
+		@Schema(description = "Response metadata (server time, optional request id).") Meta meta,
+		@Schema(description = "Logical errors; empty on success.") List<ApiError> errors
+) {
 
 	public ApiResponse {
 		meta = Objects.requireNonNull(meta, "meta");
@@ -38,7 +44,11 @@ public record ApiResponse<T>(T data, Meta meta, List<ApiError> errors) {
 	}
 
 	/** Response metadata (server time; optional correlation id). */
-	public record Meta(Instant timestamp, String requestId) {
+	@Schema(name = "ApiResponseMeta", description = "Server timestamp and optional correlation id.")
+	public record Meta(
+			@Schema(description = "UTC instant when the response was built.") Instant timestamp,
+			@Schema(description = "Optional request correlation id from headers or gateway.") String requestId
+	) {
 
 		public Meta {
 			Objects.requireNonNull(timestamp, "timestamp");
@@ -46,7 +56,12 @@ public record ApiResponse<T>(T data, Meta meta, List<ApiError> errors) {
 	}
 
 	/** Single logical error; {@code field} set when validation targets one input. */
-	public record ApiError(String code, String message, String field) {
+	@Schema(name = "ApiError", description = "Single logical error code and message.")
+	public record ApiError(
+			@Schema(description = "Stable machine-readable code (e.g. INSUFFICIENT_FUNDS).") String code,
+			@Schema(description = "Human-readable explanation.") String message,
+			@Schema(description = "When validation targets one field, its JSON path or name.") String field
+	) {
 
 		public ApiError {
 			Objects.requireNonNull(code, "code");

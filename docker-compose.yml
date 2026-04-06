@@ -1,5 +1,59 @@
-# Load variables from .env in this directory (copy from .env.example). Do not commit real secrets.
+# v0.3.0 Phase 8 — full stack for running off localhost (VPS / CI / demo host).
+# Copy .env.example → .env and set secrets. Then: docker compose up -d --build
+#
+# Exposed on host (defaults): HTTP API via nginx :80, Grafana :3000, Kibana :5601, Prometheus :9090
+# App listens only inside the network (use nginx as entrypoint).
+
+name: bank-api
+
+networks:
+  bank_network:
+    driver: bridge
+
+volumes:
+  bank_postgres_data:
+  bank_zookeeper_data:
+  bank_zookeeper_log:
+  bank_kafka_data:
+  bank_es_data:
+  bank_grafana_data:
+
 services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_DATA_DIR: /var/lib/zookeeper/data
+    volumes:
+      - bank_zookeeper_data:/var/lib/zookeeper/data
+      - bank_zookeeper_log:/var/lib/zookeeper/log
+    networks: [bank_network]
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - bank_kafka_data:/var/lib/kafka/data
+    networks: [bank_network]
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+
   postgres:
     image: postgres:16-alpine
     env_file:
@@ -7,40 +61,124 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-at_bank}
       POSTGRES_USER: ${POSTGRES_USER:-bank}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env — see .env.example}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - bank_postgres_data:/var/lib/postgresql/data
+    networks: [bank_network]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 8
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    networks: [bank_network]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 8
 
-  kafka:
-    image: docker.redpanda.com/redpandadata/redpanda:v24.2.4
-    command:
-      - redpanda
-      - start
-      - --kafka-addr
-      - internal://0.0.0.0:9092,external://0.0.0.0:19092
-      - --advertise-kafka-addr
-      - internal://kafka:9092,external://localhost:19092
-      - --smp
-      - "1"
-      - --memory
-      - 512M
-      - --mode
-      - dev-container
-      - --default-log-level=warn
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      cluster.name: bank-logs
+    volumes:
+      - bank_es_data:/usr/share/elasticsearch/data
+    networks: [bank_network]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./infra/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    networks: [bank_network]
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      SERVER_NAME: kibana
     ports:
-      - "${KAFKA_HOST_PORT:-19092}:19092"
+      - "${KIBANA_PORT:-5601}:5601"
+    networks: [bank_network]
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks: [bank_network]
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - bank_grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      - prometheus
+    networks: [bank_network]
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bank-api:${BANK_API_IMAGE_TAG:-local}
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-at_bank}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bank}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      # Domain-event Kafka (Phase 8): off until handlers publish to Kafka; notifications still use broker.
+      BANK_KAFKA_ENABLED: ${BANK_KAFKA_ENABLED:-false}
+    networks: [bank_network]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    expose:
+      - "8080"
+
+  nginx:
+    image: nginx:1.25-alpine
+    depends_on:
+      - app
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks: [bank_network]

@@ -9,6 +9,8 @@ import io.github.alexistrejo11.bank.notifications.domain.model.NotificationChann
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationRecordFilters;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationStatus;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiKeys;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiOperation;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -35,6 +37,7 @@ public class NotificationMonitoringController {
 	}
 
 	@GetMapping("/records")
+	@BankApiOperation(BankApiKeys.NOTIFICATIONS_RECORDS)
 	@PreAuthorize("hasAuthority('notifications:read')")
 	public ResponseEntity<ApiResponse<NotificationRecordsPageResponse>> records(
 			@RequestParam(required = false) NotificationStatus status,
@@ -50,6 +53,7 @@ public class NotificationMonitoringController {
 	}
 
 	@GetMapping("/summary")
+	@BankApiOperation(BankApiKeys.NOTIFICATIONS_SUMMARY)
 	@PreAuthorize("hasAuthority('notifications:read')")
 	public ResponseEntity<ApiResponse<NotificationSummaryResponse>> summary() {
 		return ResponseEntity.ok(ApiResponse.success(NotificationApiMapper.toSummaryResponse(getNotificationSummaryHandler.handle())));

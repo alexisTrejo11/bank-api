@@ -13,6 +13,8 @@ import io.github.alexistrejo11.bank.accounts.domain.query.GetAccountBalanceQuery
 import io.github.alexistrejo11.bank.accounts.domain.query.GetAccountLedgerQuery;
 import io.github.alexistrejo11.bank.iam.infrastructure.security.IamUserPrincipal;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiKeys;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiOperation;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +48,7 @@ public class AccountController {
 	}
 
 	@PostMapping
+	@BankApiOperation(BankApiKeys.ACCOUNTS_OPEN)
 	@PreAuthorize("hasAuthority('accounts:write')")
 	public ResponseEntity<ApiResponse<OpenAccountResponse>> open(
 			@AuthenticationPrincipal IamUserPrincipal principal,
@@ -66,6 +69,7 @@ public class AccountController {
 	}
 
 	@GetMapping("/{accountId}/ledger")
+	@BankApiOperation(BankApiKeys.ACCOUNTS_LEDGER)
 	@PreAuthorize("hasAuthority('accounts:read')")
 	public ResponseEntity<ApiResponse<LedgerPageResponse>> ledger(
 			@AuthenticationPrincipal IamUserPrincipal principal,

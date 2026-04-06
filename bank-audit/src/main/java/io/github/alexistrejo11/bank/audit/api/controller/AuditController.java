@@ -5,6 +5,8 @@ import io.github.alexistrejo11.bank.audit.api.mapper.AuditApiMapper;
 import io.github.alexistrejo11.bank.audit.application.handler.query.SearchAuditRecordsHandler;
 import io.github.alexistrejo11.bank.audit.domain.model.AuditRecordFilters;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiKeys;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiOperation;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +29,7 @@ public class AuditController {
 	}
 
 	@GetMapping("/records")
+	@BankApiOperation(BankApiKeys.AUDIT_LIST)
 	@PreAuthorize("hasAuthority('audit:read')")
 	public ResponseEntity<ApiResponse<AuditRecordsPageResponse>> listRecords(
 			@RequestParam(required = false) String eventType,

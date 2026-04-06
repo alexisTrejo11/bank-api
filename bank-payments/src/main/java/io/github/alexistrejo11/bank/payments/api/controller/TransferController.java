@@ -6,6 +6,8 @@ import io.github.alexistrejo11.bank.payments.application.handler.command.Initiat
 import io.github.alexistrejo11.bank.payments.application.handler.command.ReverseTransferHandler;
 import io.github.alexistrejo11.bank.iam.infrastructure.security.IamUserPrincipal;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiKeys;
+import io.github.alexistrejo11.bank.shared.openapi.BankApiOperation;
 import io.github.alexistrejo11.bank.shared.ratelimit.RateLimit;
 import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitProfile;
 import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitScope;
@@ -37,6 +39,7 @@ public class TransferController {
 	}
 
 	@PostMapping("/transfers")
+	@BankApiOperation(BankApiKeys.PAYMENTS_TRANSFER)
 	@PreAuthorize("hasAuthority('payments:write')")
 	public ResponseEntity<ApiResponse<TransferResponse>> transfer(
 			@AuthenticationPrincipal IamUserPrincipal principal,
@@ -56,6 +59,7 @@ public class TransferController {
 	}
 
 	@PostMapping("/transfers/{transferId}/reverse")
+	@BankApiOperation(BankApiKeys.PAYMENTS_REVERSE)
 	@PreAuthorize("hasAuthority('payments:write')")
 	public ResponseEntity<ApiResponse<TransferResponse>> reverse(
 			@AuthenticationPrincipal IamUserPrincipal principal,
