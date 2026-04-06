@@ -84,5 +84,6 @@ Add labels such as `version:0.2.0`, `module:infra`, `module:notifications` for f
 | Area | Location |
 |------|----------|
 | Implementation checklist | [TRACKER.md](TRACKER.md) |
+| Flyway / H2 vs PostgreSQL | [DATABASE.md](DATABASE.md) |
 | Architecture (updated for 0.2.0 direction) | [.agents/architecture.md](../../.agents/architecture.md) |
 | Agent entrypoint | [.agents/agent.md](../../.agents/agent.md) |

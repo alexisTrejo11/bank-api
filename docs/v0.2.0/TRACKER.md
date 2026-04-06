@@ -14,9 +14,9 @@ Single checklist for **release 0.2.0** infrastructure and cross-cutting work. Se
 
 | ID | Track item | Done |
 |----|------------|------|
-| V2-DB | PostgreSQL datasource profile(s) + Compose service wired to app | [ ] |
-| V2-F | Flyway migrations validated on PostgreSQL; document H2 vs PG differences | [ ] |
-| V2-T | CI / Testcontainers still green | [ ] |
+| V2-DB | PostgreSQL datasource profile(s) + Compose service wired to app | [x] |
+| V2-F | Flyway migrations validated on PostgreSQL; document H2 vs PG differences | [x] |
+| V2-T | CI / Testcontainers still green | [x] |
 
 - **PR:** 
 - **Merged at / SHA on `develop`:** 
@@ -29,10 +29,10 @@ Single checklist for **release 0.2.0** infrastructure and cross-cutting work. Se
 
 | ID | Track item | Done |
 |----|------------|------|
-| V2-R-C | Connection config from environment; health indicator | [ ] |
-| V2-R-I | IAM: refresh + JWT blocklist using Redis in target profile(s) | [ ] |
-| V2-R-P | Payments: Redis idempotency enabled for same profile(s) | [ ] |
-| V2-R-D | README / ROADMAP: how to run with and without Redis | [ ] |
+| V2-R-C | Connection config from environment; health indicator | [x] |
+| V2-R-I | IAM: refresh + JWT blocklist using Redis in target profile(s) | [x] |
+| V2-R-P | Payments: Redis idempotency enabled for same profile(s) | [x] |
+| V2-R-D | README / ROADMAP: how to run with and without Redis | [x] |
 
 - **PR:** 
 - **Merged at / SHA on `develop`:** 
@@ -45,10 +45,10 @@ Single checklist for **release 0.2.0** infrastructure and cross-cutting work. Se
 
 | ID | Track item | Done |
 |----|------------|------|
-| V2-K-B | Kafka in Docker Compose; Spring Kafka config | [ ] |
-| V2-K-P | Publish/consume design implemented in `bank-notifications` | [ ] |
-| V2-K-O | Observability: consumer lag / error metrics or logs | [ ] |
-| V2-K-T | Tests (Testcontainers Kafka or embedded) | [ ] |
+| V2-K-B | Kafka in Docker Compose; Spring Kafka config | [x] |
+| V2-K-P | Publish/consume design implemented in `bank-notifications` | [x] |
+| V2-K-O | Observability: consumer lag / error metrics or logs | [x] |
+| V2-K-T | Tests (Testcontainers Kafka or embedded) | [x] |
 
 - **PR:** 
 - **Merged at / SHA on `develop`:** 
@@ -61,8 +61,8 @@ Single checklist for **release 0.2.0** infrastructure and cross-cutting work. Se
 
 | ID | Track item | Done |
 |----|------------|------|
-| V2-S | Spring Security refactor: explicit chains, documented public routes | [ ] |
-| V2-C | CORS from configurable properties / env | [ ] |
+| V2-S | Spring Security refactor: explicit chains, documented public routes | [x] |
+| V2-C | CORS from configurable properties / env | [x] |
 | V2-L | Rate limiting (Redis) for selected endpoints | [ ] |
 
 - **PR:** 
@@ -76,9 +76,9 @@ Single checklist for **release 0.2.0** infrastructure and cross-cutting work. Se
 
 | ID | Track item | Done |
 |----|------------|------|
-| V2-O-L | JSON structured application logging + MDC | [ ] |
-| V2-O-A | Audit-friendly log channel or field convention for ELK | [ ] |
-| V2-O-E | `.env.example` + docs; `.gitignore` for `.env` | [ ] |
+| V2-O-L | JSON structured application logging + MDC | [x] |
+| V2-O-A | Audit-friendly log channel or field convention for ELK | [x] |
+| V2-O-E | `.env.example` + docs; `.gitignore` for `.env` | [x] |
 | V2-O-R | Release tag `v0.2.0` after merge to `main` (per your release process) | [ ] |
 
 - **PR:** 
