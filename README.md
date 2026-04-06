@@ -34,6 +34,13 @@ From the repository root (JDK 21+):
 ./mvnw clean verify
 ```
 
+### v0.2.0: PostgreSQL, Redis, and Kafka locally
+
+1. Start infrastructure: `docker compose up -d postgres redis kafka` (database `at_bank`, user/password `bank` / `bank`; Redpanda exposes Kafka on host port **19092**).
+2. **PostgreSQL only (no Redis/Kafka):** `./mvnw -pl bank-boot spring-boot:run -Dspring-boot.run.profiles=postgres`
+3. **Full stack (matches `application-docker.yaml` hostnames):** run the app in a container on the same Compose network, *or* for a host-run JVM use profile **`postgres`** and override Redis/Kafka endpoints via environment (see [.env.example](.env.example)): e.g. `SPRING_DATA_REDIS_HOST=localhost`, `SPRING_KAFKA_BOOTSTRAP_SERVERS=localhost:19092`, plus `BANK_*` toggles for IAM Redis and payment idempotency as needed.
+4. **Default / tests:** in-memory H2, IAM Redis and payment Redis idempotency **off**, notification dispatch **inline** (no broker). See [docs/v0.2.0/DATABASE.md](docs/v0.2.0/DATABASE.md) and [docs/v0.2.0/ROADMAP.md](docs/v0.2.0/ROADMAP.md).
+
 Install only the shared kernel for use in another project:
 
 ```bash

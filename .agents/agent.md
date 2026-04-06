@@ -20,7 +20,7 @@
 ./mvnw test                            # unit tests only
 ./mvnw -pl bank-boot spring-boot:run   # runnable application module
 docker compose up --build              # full local stack (when compose is present)
-docker compose up postgres redis       # infra only (for local Spring run)
+docker compose up -d postgres redis kafka   # infra for v0.2.0 (see README + docs/v0.2.0/DATABASE.md)
 ```
 
 ## Module list
