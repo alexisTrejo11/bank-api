@@ -11,6 +11,9 @@ import io.github.alexistrejo11.bank.iam.application.handler.command.RefreshToken
 import io.github.alexistrejo11.bank.iam.application.handler.command.RegisterUserHandler;
 import io.github.alexistrejo11.bank.iam.infrastructure.security.IamUserPrincipal;
 import io.github.alexistrejo11.bank.shared.api.ApiResponse;
+import io.github.alexistrejo11.bank.shared.ratelimit.RateLimit;
+import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitProfile;
+import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitScope;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -45,21 +48,25 @@ public class AuthController {
 	}
 
 	@PostMapping("/register")
+	@RateLimit(profile = RateLimitProfile.STRICT, scope = RateLimitScope.PER_IP)
 	public ResponseEntity<ApiResponse<TokenResponse>> register(@Valid @RequestBody RegisterRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(registerUserHandler.handle(request)));
 	}
 
 	@PostMapping("/login")
+	@RateLimit(profile = RateLimitProfile.STRICT, scope = RateLimitScope.PER_IP)
 	public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(loginHandler.handle(request)));
 	}
 
 	@PostMapping("/refresh")
+	@RateLimit(profile = RateLimitProfile.STRICT, scope = RateLimitScope.PER_IP)
 	public ResponseEntity<ApiResponse<TokenResponse>> refresh(@Valid @RequestBody RefreshRequest request) {
 		return ResponseEntity.ok(ApiResponse.success(refreshTokenHandler.handle(request)));
 	}
 
 	@PostMapping("/logout")
+	@RateLimit(profile = RateLimitProfile.STANDARD, scope = RateLimitScope.PER_USER)
 	public ResponseEntity<Void> logout(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization) {
 		if (authorization == null || !authorization.startsWith("Bearer ")) {
 			return ResponseEntity.status(401).build();
@@ -70,6 +77,7 @@ public class AuthController {
 
 	@GetMapping("/me")
 	@PreAuthorize("isAuthenticated()")
+	@RateLimit(profile = RateLimitProfile.STANDARD, scope = RateLimitScope.PER_USER)
 	public ResponseEntity<ApiResponse<MeResponse>> me(@AuthenticationPrincipal IamUserPrincipal principal) {
 		return ResponseEntity.ok(ApiResponse.success(new MeResponse(principal.userId().value(), principal.getUsername())));
 	}

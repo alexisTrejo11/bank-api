@@ -1,8 +1,5 @@
 package io.github.alexistrejo11.bank.iam.infrastructure.security;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -59,17 +56,5 @@ public class SecurityConfig {
 	@Bean
 	PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
-	}
-
-	@Bean
-	KeyPair iamJwtKeyPair() {
-		try {
-			KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
-			gen.initialize(2048);
-			return gen.generateKeyPair();
-		}
-		catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		}
 	}
 }
