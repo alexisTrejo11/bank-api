@@ -1,0 +1,41 @@
+# Full stack: docker compose up postgres redis kafka — then run the app with -Dspring.profiles.active=docker
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres:5432/at_bank
+    username: bank
+    password: bank
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  data:
+    redis:
+      host: redis
+      port: 6379
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: bank-notifications
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+management:
+  health:
+    redis:
+      enabled: true
+
+bank:
+  iam:
+    redis:
+      enabled: true
+  payments:
+    redis-idempotency: true
+  notifications:
+    dispatch-mode: kafka
+    kafka:
+      enabled: true

@@ -1,0 +1,3 @@
+-- Align USER role with domain model (CUSTOMER can initiate transfers)
+INSERT INTO role_permissions (role_id, permission_id) VALUES
+    ('00000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-000000000005');

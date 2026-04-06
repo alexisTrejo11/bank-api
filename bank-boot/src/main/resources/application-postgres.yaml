@@ -1,0 +1,15 @@
+# Local PostgreSQL (hardcoded for v0.2.0 dev). Prefer env-based secrets for shared environments; see .env.example
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: jdbc:postgresql://localhost:5432/at_bank
+    username: bank
+    password: bank
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
