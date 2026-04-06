@@ -1,323 +1,280 @@
 # Bank API
 
-## Documentation (execution and GitHub)
+A production-ready modular monolith banking API built with Java 21, Spring Boot 4, and Hexagonal Architecture.
 
-| Document | Description |
-|----------|-------------|
-| [docs/README.md](docs/README.md) | Index: v0.1.0 archive vs v0.2.0 roadmap |
-| [docs/v0.2.0/ROADMAP.md](docs/v0.2.0/ROADMAP.md) | **Planned improvements** for release 0.2.0 |
-| [docs/v0.1.0/GITHUB_STRATEGY.md](docs/v0.1.0/GITHUB_STRATEGY.md) | Branches, merges, solo PR flow |
-| [docs/v0.1.0/PR_CONVENTIONS.md](docs/v0.1.0/PR_CONVENTIONS.md) | Conventional Commit titles, PR body, `Closes #` |
-| [docs/v0.1.0/LABELS.md](docs/v0.1.0/LABELS.md) | GitHub label definitions |
-| [docs/v0.1.0/ISSUES.md](docs/v0.1.0/ISSUES.md) | Phase ↔ Issue ↔ branch mapping (P0–P8) |
-| [docs/v0.1.0/TRACKER.md](docs/v0.1.0/TRACKER.md) | **v0.1.0 implementation checklist** and PR links |
-| [docs/v0.1.0/EXECUTION_WORKFLOW.md](docs/v0.1.0/EXECUTION_WORKFLOW.md) | Repeatable PR and release steps (Phases 1–8) |
-| [docs/v0.1.0/GITHUB_SETUP_CHECKLIST.md](docs/v0.1.0/GITHUB_SETUP_CHECKLIST.md) | Branch protection, labels, Issues P0–P8 (manual; use if `gh` is unavailable) |
+![Java](https://img.shields.io/badge/Java-21-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.5-brightgreen)
+![License](https://img.shields.io/badge/License-MIT-blue)
+![Status](https://img.shields.io/badge/Status-Active-success)
 
-### Repository layout
+## Overview
 
-```
-bank-api/                    ← parent POM (bank-parent)
-├── bank-shared/             ← reusable library JAR (import this from other Spring modules)
-├── bank-boot/               ← Spring Boot runnable (depends on bank-shared)
-├── docs/                    ← v0.1.0 process docs + v0.2.0 roadmap (see docs/README.md)
-└── pom.xml
-```
+Bank API is a comprehensive banking system implementing:
+- **Identity & Access Management** — JWT authentication with RS256, refresh tokens, RBAC
+- **Accounts** — Double-entry bookkeeping with immutable ledger
+- **Payments** — Idempotent transfers between accounts
+- **Loans** — Loan origination with amortization schedules
+- **Notifications** — Email/SMS async dispatch
+- **Audit** — Immutable event log for compliance
 
-There is **no** `src/` at the repository root; sources live only under each module.
+## Quick Start
 
-### Build (Maven multi-module)
+### Prerequisites
 
-From the repository root (JDK 21+):
+- Java 21+
+- Maven 3.9+
+- Docker & Docker Compose (for full stack)
+
+### Build & Run (Development)
 
 ```bash
+# Clone and build
+git clone https://github.com/alexistrejo11/bank-api.git
+cd bank-api
+
+# Run with H2 in-memory database (default)
 ./mvnw clean verify
+./mvnw -pl bank-boot spring-boot:run
 ```
 
-### v0.3.0: Full Docker stack (run off your laptop / VPS)
-
-Build and run **nginx + app + Postgres + Redis + Kafka + Prometheus + Grafana + ELK** with one command. See **[docs/v.0.3.0/DOCKER.md](docs/v.0.3.0/DOCKER.md)** (`docker compose up -d --build`).
-
-**Architecture & infra (diagrams, ports, observability):** [docs/v.0.3.0/infrastrcuture.md](docs/v.0.3.0/infrastrcuture.md).
-
-**Modules (Maven):** `bank-shared`, `bank-iam`, `bank-accounts`, `bank-payments`, `bank-loans`, `bank-notifications`, `bank-audit`, `bank-boot`.
-
-**After `docker compose up`, you can:**
-
-| What | URL / notes |
-|------|-------------|
-| **Swagger UI** | `http://localhost/swagger-ui.html` — OpenAPI title **Bank API** `1.0.0`, JWT scheme **bearer-jwt** (Authorize). Operation copy lives in `BankApiDocumentationCatalog`; controllers use `@BankApiOperation` only. |
-| **Grafana** | `http://localhost:3000` (admin password from `GRAFANA_ADMIN_PASSWORD` in `.env`) |
-| **Kibana** | `http://localhost:5601` — index pattern `bank-logs-*` |
-
-**Demo users** (repeatable seed `R__seed_demo_data.sql`; password **`Demo123!`** for all):
-
-| Email | Role |
-|-------|------|
-| `demo.alice@demo.bank` | USER (accounts, payments, loans) |
-| `demo.bob@demo.bank` | USER |
-| `demo.admin@demo.bank` | ADMIN |
-
-The seed includes **10 completed transfers**, **2 active loans** with partial repayments, and **double-entry ledger** rows (`TRANSFER`, `LOAN_DISBURSE`, `LOAN_REPAYMENT`, `DEMO_SEED_FUNDING`).
-
-### v0.2.0: PostgreSQL, Redis, and Kafka locally
-
-Configuration is **externalized**: use environment variables and/or a repo-root **`.env`** file (copy from [.env.example](.env.example)). Details: [docs/v0.2.0/CONFIGURATION.md](docs/v0.2.0/CONFIGURATION.md).
-
-1. **`cp .env.example .env`** and set at least **`POSTGRES_PASSWORD`** (and matching **`SPRING_DATASOURCE_PASSWORD`**) before **`docker compose up`**.
-2. Start infrastructure: **`docker compose up -d postgres redis kafka`** (Redpanda exposes Kafka on host port **19092** by default).
-3. **PostgreSQL only (no Redis/Kafka):** export **`SPRING_DATASOURCE_*`** from `.env`, then `./mvnw -pl bank-boot spring-boot:run -Dspring-boot.run.profiles=postgres`
-4. **Full stack (`docker` profile on the host):** set **`SPRING_DATASOURCE_URL`**, **`SPRING_DATA_REDIS_HOST`**, **`SPRING_KAFKA_BOOTSTRAP_SERVERS`**, and related keys (see `.env.example`), then run with **`-Dspring.profiles.active=docker`**.
-5. **Default / tests:** in-memory H2 when **`SPRING_DATASOURCE_URL`** is not set; **`mvn verify`** uses the **`test`** profile. See [docs/v0.2.0/DATABASE.md](docs/v0.2.0/DATABASE.md) and [docs/v0.2.0/ROADMAP.md](docs/v0.2.0/ROADMAP.md).
-6. **Rate limiting:** `bank.rate-limiting.enabled=true` with Redis (on in **`docker`** profile). Global per-IP bucket protects `/api/**`; controllers use `@RateLimit`. Responses use **429** with `Retry-After` and `X-RateLimit-*` headers.
-
-Install only the shared kernel for use in another project:
+### Run with PostgreSQL + Redis + Kafka
 
 ```bash
-./mvnw -pl bank-shared install
+# 1. Copy environment file
+cp .env.example .env
+
+# 2. Set required values in .env (POSTGRES_PASSWORD, etc.)
+
+# 3. Start infrastructure
+docker compose up -d postgres redis kafka
+
+# 4. Run with docker profile
+./mvnw -pl bank-boot spring-boot:run -Dspring-profiles.active=docker
 ```
 
-- **`bank-shared`** — shared kernel ([`bank-shared/README.md`](bank-shared/README.md)).
-- **`bank-boot`** — Spring Boot application (`spring.application.name` in `bank-boot/src/main/resources/application.yaml`).
+### Access Points
 
----
+| Service | URL | Credentials |
+|---------|-----|--------------|
+| API | http://localhost:8080 | — |
+| Swagger UI | http://localhost:8080/swagger-ui.html | JWT (Authorize button) |
+| API Docs (JSON) | http://localhost:8080/api-docs | — |
+| Actuator Health | http://localhost:8080/actuator/health | — |
+| Prometheus Metrics | http://localhost:8080/actuator/prometheus | — |
 
-## Project planning document
-
-### 1. Tech stack decisions
-
-| Concern | Choice | Rationale |
-|---|---|---|
-| Runtime | Java 21 (LTS) + Spring Boot 3.x | Virtual threads (Project Loom), native compile path for later AWS migration |
-| Architecture | Modular monolith | Each domain is a self-contained Maven submodule with its own `api`, `domain`, `infrastructure` packages. No shared mutable state across module boundaries — extraction to a microservice later is a rename, not a rewrite |
-| API | Spring MVC REST + OpenAPI 3 (SpringDoc) | Contract-first: publish the spec, generate clients |
-| Auth | Spring Security 6 + JWT (RS256) + RBAC | Asymmetric keys allow future service-to-service trust; RBAC roles live in the `iam` module |
-| Persistence | Spring Data JPA + PostgreSQL 16 | ACID transactions critical for double-entry bookkeeping |
-| Migrations | Flyway + seed scripts | Repeatable migrations for demo data; versioned migrations for schema |
-| Cache / Sessions | Redis (Spring Data Redis) | JWT blocklist (logout), idempotency keys, rate-limit counters |
-| Async (internal) | Spring `ApplicationEventPublisher` | Decoupled module-to-module events without Kafka overhead; swap surface is a single `@EventListener` annotation |
-| Metrics | Micrometer → Prometheus → Grafana | Actuator endpoints expose `/metrics` in Prometheus format |
-| Logs | Logback (JSON encoder) → Logstash → Elasticsearch → Kibana | Structured logs with `traceId`, `userId`, `moduleId` MDC fields |
-| Testing | JUnit 5 + Mockito + Testcontainers + REST Assured | Real DB and Redis in containers for integration tests |
-| Build | Maven multi-module (`bank-parent` → `bank-*` modules, `bank-boot`) | Shared kernel in `bank-shared/`; runnable application in `bank-boot/` |
-| Containers | Docker Compose | One file for full local stack |
-
----
-
-### 2. Module breakdown & bounded contexts
-
-Each module lives at `io.github.alexistrejo11.bank.{module}` and follows **hexagonal architecture** (ports & adapters).
+## Project Structure
 
 ```
-io.github.alexistrejo11.bank.iam          → auth, users, roles, permissions
-io.github.alexistrejo11.bank.accounts     → accounts, balances, double-entry ledger
-io.github.alexistrejo11.bank.payments     → transfers, idempotency, FX stubs
-io.github.alexistrejo11.bank.loans        → loan origination, schedule, repayment
-io.github.alexistrejo11.bank.notifications → email/push dispatch, template engine
-io.github.alexistrejo11.bank.audit        → immutable event log, compliance queries
-io.github.alexistrejo11.bank.shared       → value objects (Money, Currency, AccountId), exceptions, events
+bank-api/
+├── bank-shared/           # Shared kernel (value objects, events, Result<T>)
+├── bank-iam/              # Identity & Access Management
+├── bank-accounts/         # Accounts & Ledger
+├── bank-payments/        # Transfers & Idempotency
+├── bank-loans/           # Loans & Amortization
+├── bank-notifications/   # Email & SMS dispatch
+├── bank-audit/           # Immutable audit records
+├── bank-boot/            # Spring Boot application
+├── docs/                 # Documentation
+│   ├── project/          # Project documentation
+│   └── v0.2.0/          # Configuration guides
+├── docker-compose.yml    # Full stack
+└── pom.xml               # Parent POM
 ```
 
-**Module internal package structure (apply to every module):**
+## Architecture
+
+### Hexagonal Architecture (Ports & Adapters)
+
+Each module follows identical package structure:
 
 ```
 {module}/
-  api/          → REST controllers, DTOs, request/response mappers
-  application/  → use cases / service layer (orchestration only)
-  domain/       → entities, aggregates, repository interfaces (ports)
-  infrastructure/
-    persistence/  → JPA entities, Spring Data repos (adapter)
-    events/       → ApplicationEvent publishers/listeners
-    external/     → third-party clients (email, SMS stubs)
+├── api/           → REST controllers, DTOs, mappers
+├── application/   → Command/Query handlers
+├── domain/        → Entities, value objects, ports
+└── infrastructure/→ JPA repositories, event listeners, adapters
 ```
 
-**Cross-module rule:** modules communicate only via `shared` value objects and `ApplicationEvent`s. No direct Spring bean injection across module boundaries.
+### Key Patterns
 
----
+| Pattern | Implementation |
+|---------|----------------|
+| Double-Entry Bookkeeping | Every transfer creates two LedgerEntry rows (debit + credit) |
+| Event-Driven | ApplicationEvents trigger cross-module side-effects |
+| Idempotency | UUID keys cached in Redis with 24h TTL |
+| Rate Limiting | Token bucket algorithm (global + per-user profiles) |
+| Result<T> | Explicit error handling with sealed Result interface |
 
-### 3. Domain model highlights
+## API Endpoints
 
-**Accounts & Balances** — double-entry bookkeeping is non-negotiable. Every balance mutation produces two `LedgerEntry` rows (debit + credit). Balance is always derived from the ledger, never stored as a mutable column.
+### Authentication (IAM)
 
-**Payments** — each transfer is idempotent by `idempotencyKey` (UUID stored in Redis with TTL). State machine: `PENDING → PROCESSING → COMPLETED | FAILED | REVERSED`.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/auth/register` | Register new user |
+| POST | `/api/v1/auth/login` | Login (get JWT) |
+| POST | `/api/v1/auth/refresh` | Refresh access token |
+| POST | `/api/v1/auth/logout` | Logout (blocklist JWT) |
+| GET | `/.well-known/jwks.json` | JWT public keys |
 
-**Loans** — origination creates an amortization schedule. Each installment is a `LoanRepayment` entity. When paid, it fires a `LoanRepaymentCompletedEvent` consumed by Accounts.
+### Accounts
 
-**IAM** — `User` → `Role` → `Permission` (many-to-many). Spring Security `UserDetails` loads roles at JWT issuance time. Permissions are fine-grained strings like `accounts:read`, `payments:write`.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/accounts` | Create account |
+| GET | `/api/v1/accounts/{id}` | Get account |
+| GET | `/api/v1/accounts/{id}/balance` | Get derived balance |
+| GET | `/api/v1/accounts/{id}/ledger` | Get ledger entries |
 
-**Audit** — every domain event (from every module) is consumed by `AuditEventListener` and persisted as an immutable `AuditRecord`. No update/delete on this table — enforced at DB level via row-level trigger.
+### Payments
 
----
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/transfers` | Initiate transfer (idempotent) |
+| GET | `/api/v1/transfers/{id}` | Get transfer status |
 
-### 4. API design conventions
+### Loans
 
-- Base path: `/api/v1/{module}/...`
-- All responses wrapped in `ApiResponse<T>` envelope: `{ data, meta, errors }`
-- Pagination: cursor-based for ledger/audit, offset for lists
-- Error contract: RFC 7807 Problem Details (`type`, `title`, `status`, `detail`, `instance`)
-- Idempotency header: `Idempotency-Key: <uuid>` required on all POST payment endpoints
-- Auth header: `Authorization: Bearer <jwt>`
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/loans/apply` | Apply for loan |
+| GET | `/api/v1/loans/{id}` | Get loan details |
+| GET | `/api/v1/loans/{id}/schedule` | Get amortization schedule |
+| POST | `/api/v1/loans/{id}/repay` | Record repayment |
 
-Key endpoints per module:
+### Audit
 
-| Module | Method | Path | Notes |
-|---|---|---|---|
-| IAM | POST | `/auth/register` | Creates user + assigns default role |
-| IAM | POST | `/auth/login` | Issues JWT (RS256, 15 min) + refresh token (Redis, 7d) |
-| IAM | POST | `/auth/refresh` | Rotates refresh token |
-| IAM | POST | `/auth/logout` | Blocklists JWT in Redis |
-| Accounts | POST | `/accounts` | Open account |
-| Accounts | GET | `/accounts/{id}/balance` | Derived from ledger |
-| Accounts | GET | `/accounts/{id}/ledger` | Paginated ledger entries |
-| Payments | POST | `/transfers` | Idempotent transfer |
-| Payments | GET | `/transfers/{id}` | Transfer status |
-| Loans | POST | `/loans/apply` | Origination |
-| Loans | GET | `/loans/{id}/schedule` | Amortization schedule |
-| Loans | POST | `/loans/{id}/repay` | Record a repayment |
-| Audit | GET | `/audit/events` | Filtered compliance query |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/audit/events` | Query audit records |
 
----
+## Documentation
 
-### 5. Data model (key tables)
+### Project Documentation (`docs/project/`)
 
-```sql
--- IAM
-users           (id, email, password_hash, status, created_at)
-roles           (id, name)
-permissions     (id, name)
-user_roles      (user_id, role_id)
-role_permissions(role_id, permission_id)
+| Document | Description |
+|----------|-------------|
+| [ProjectMetadata.md](docs/project/ProjectMetadata.md) | Project metadata, tags, owner |
+| [ProjectOverview.md](docs/project/ProjectOverview.md) | Problem statement, solution, key metrics |
+| [ProjectFeatures.md](docs/project/ProjectFeatures.md) | 11 features with details |
+| [ProjectArchitectureModel.md](docs/project/ProjectArchitectureModel.md) | Layers, patterns, diagrams, data flows |
+| [InfrastructureModel.md](docs/project/InfrastructureModel.md) | Deployment layers, Docker, cloud services |
+| [APISchema.md](docs/project/APISchema.md) | API endpoints with schemas |
+| [ProjectCodeShowCase.md](docs/project/ProjectCodeShowCase.md) | Code examples |
+| [ProjectMetric.md](docs/project/ProjectMetric.md) | Project metrics |
+| [ProjectLinks.md](docs/project/ProjectLinks.md) | External links |
+| [MediaGallerySection.md](docs/project/MediaGallerySection.md) | Visual documentation |
 
--- Accounts
-accounts        (id, user_id, type, currency, status, created_at)
-ledger_entries  (id, account_id, type[DEBIT|CREDIT], amount, currency,
-                 reference_id, reference_type, created_at)
+### Configuration Guides
 
--- Payments
-transfers       (id, source_account_id, target_account_id, amount,
-                 currency, status, idempotency_key, created_at, updated_at)
+| Document | Description |
+|----------|-------------|
+| [docs/v0.2.0/CONFIGURATION.md](docs/v0.2.0/CONFIGURATION.md) | Environment variables |
+| [docs/v0.2.0/DATABASE.md](docs/v0.2.0/DATABASE.md) | Database setup |
+| [docs/v0.2.0/ROADMAP.md](docs/v0.2.0/ROADMAP.md) | Planned improvements |
 
--- Loans
-loans           (id, account_id, principal, interest_rate, term_months,
-                 status, created_at)
-loan_repayments (id, loan_id, due_date, amount, paid_at, status)
+## Tech Stack
 
--- Notifications
-notification_log(id, user_id, channel, template_key, payload, sent_at, status)
+| Category | Technology |
+|----------|------------|
+| Runtime | Java 21 |
+| Framework | Spring Boot 4.0.5 |
+| Architecture | Hexagonal / Modular Monolith |
+| Security | Spring Security 6 + JWT RS256 |
+| Database | PostgreSQL 16 / H2 (dev) |
+| Cache | Redis 7 |
+| Messaging | Kafka / Redpanda |
+| API Docs | SpringDoc OpenAPI |
+| Metrics | Micrometer + Prometheus |
+| Logs | Logback JSON → Elasticsearch → Kibana |
+| Testing | JUnit 5 + Testcontainers |
+| Build | Maven 3.9 |
 
--- Audit
-audit_records   (id, event_type, actor_id, entity_type, entity_id,
-                 payload jsonb, created_at)  -- NO UPDATE, NO DELETE
+## Configuration
+
+### Environment Variables
+
+Key variables (see `.env.example` for full list):
+
+```bash
+# Database
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/bank
+SPRING_DATASOURCE_USERNAME=bank_user
+SPRING_DATASOURCE_PASSWORD=your_password
+
+# Redis
+SPRING_DATA_REDIS_HOST=localhost
+SPRING_DATA_REDIS_PORT=6379
+
+# JWT Keys (PEM format)
+BANK_SECURITY_JWT_PRIVATE_KEY_PEM=-----BEGIN RSA PRIVATE KEY-----
+BANK_SECURITY_JWT_PUBLIC_KEY_PEM=-----BEGIN PUBLIC KEY-----
 ```
 
-Flyway file naming: `V{n}__{description}.sql` · Seed: `R__seed_demo_data.sql`
+### Profiles
 
----
+| Profile | Description |
+|---------|-------------|
+| `default` | H2 in-memory, no Redis/Kafka |
+| `test` | H2 + testcontainers |
+| `postgres` | PostgreSQL, no Redis/Kafka |
+| `docker` | Full stack (PostgreSQL + Redis + Kafka) |
 
-### 6. Security design
+## Docker Compose Services
 
-- **JWT claims:** `sub` (userId), `roles[]`, `permissions[]`, `iat`, `exp`
-- **Key rotation:** RSA key pair loaded from env; public key exposed at `/.well-known/jwks.json` for future service-to-service trust
-- **Refresh token:** stored in Redis as `refresh:{userId}:{tokenHash}` with TTL
-- **JWT blocklist:** on logout, hash stored in Redis as `blocklist:{jti}` with remaining TTL
-- **RBAC enforcement:** `@PreAuthorize("hasAuthority('payments:write')")` at controller level
-- **HTTPS:** enforced at the reverse proxy (nginx in Docker Compose); app listens on HTTP internally
-- **Secrets:** all credentials injected via environment variables; never in `application.yml`
+```bash
+# Start all services
+docker compose up -d
 
----
-
-### 7. Internal event flow
-
-```
-Payments module
-  └─ TransferCompletedEvent (ApplicationEvent)
-       ├─► AccountsEventListener  → posts two LedgerEntry rows
-       ├─► AuditEventListener     → writes AuditRecord
-       └─► NotificationEventListener → queues email to sender/receiver
-
-Loans module
-  └─ LoanRepaymentCompletedEvent
-       ├─► AccountsEventListener  → posts ledger entries
-       └─► AuditEventListener     → writes AuditRecord
+# Services available:
+# - app:8080        (Bank API)
+# - postgres:5432   (Database)
+# - redis:6379     (Cache)
+# - kafka:19092    (Message broker)
+# - prometheus:9090 (Metrics)
+# - grafana:3000   (Dashboards)
 ```
 
-All listeners annotated `@Async` + `@TransactionalEventListener(phase = AFTER_COMMIT)` so side-effects only fire on successful commit.
+## Security
+
+- **JWT**: RS256 asymmetric keys, 15-minute access tokens
+- **Refresh Tokens**: 7-day TTL in Redis with rotation
+- **RBAC**: Roles → Permissions → Endpoint authorization
+- **Rate Limiting**: Global per-IP + per-user profiles
+- **Audit**: Immutable append-only records
+
+## Testing
+
+```bash
+# Run all tests
+./mvnw verify
+
+# Run specific module tests
+./mvnw -pl bank-iam test
+
+# Run integration tests only
+./mvnw -pl bank-boot verify -DskipTests=false
+```
+
+## Future Enhancements
+
+See [docs/v0.2.0/ROADMAP.md](docs/v0.2.0/ROADMAP.md) for planned features:
+
+- AWS cloud deployment (RDS, ElastiCache, MSK)
+- Circuit breaker for external services
+- Enhanced observability with custom metrics
+- API Gateway for centralized auth
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Author
+
+**Alexis Trejo**
+- GitHub: [@alexistrejo11](https://github.com/alexistrejo11)
+- Repository: https://github.com/alexistrejo11/bank-api
 
 ---
 
-### 8. Docker Compose services
-
-| Service | Image | Purpose |
-|---|---|---|
-| `app` | custom Spring Boot image | The modular monolith |
-| `postgres` | `postgres:16-alpine` | Primary DB |
-| `redis` | `redis:7-alpine` | Cache, sessions, idempotency keys |
-| `prometheus` | `prom/prometheus` | Scrapes `/actuator/prometheus` |
-| `grafana` | `grafana/grafana` | Dashboards (provisioned via config) |
-| `elasticsearch` | `elasticsearch:8.x` | Log storage |
-| `logstash` | `logstash:8.x` | Parses JSON logs from app |
-| `kibana` | `kibana:8.x` | Log exploration |
-
-Health checks on all services; `app` depends on `postgres` and `redis` being healthy.
-
----
-
-### 9. Testing strategy
-
-| Layer | Tool | Scope |
-|---|---|---|
-| Unit | JUnit 5 + Mockito | Domain logic, use cases (no Spring context) |
-| Integration | `@SpringBootTest` + Testcontainers | Full HTTP → DB → Redis round-trips |
-| Module isolation | `@WebMvcTest` + MockBean | Controller slice, verifies security rules |
-| Data | `@DataJpaTest` + Testcontainers | Repository queries, Flyway migrations |
-| API | REST Assured (inside integration tests) | Validates OpenAPI contract adherence |
-
-Naming convention: `{Class}Test` for unit, `{Class}IT` for integration. Testcontainers reuses the same container per test class via `@Container static`.
-
----
-
-### 10. Observability checklist
-
-**Metrics to expose (custom `MeterRegistry` beans):**
-- `bank.transfer.total` (counter, tagged by status)
-- `bank.transfer.amount` (distribution summary)
-- `bank.account.balance` (gauge per account type)
-- `bank.loan.delinquency_rate` (gauge)
-
-**Structured log MDC fields:** `traceId`, `spanId`, `userId`, `module`, `requestId`
-
-**Grafana dashboards to provision:**
-- JVM health (heap, GC, threads)
-- HTTP request rates and latency by endpoint
-- Transfer volume and failure rate
-- Active loans overview
-
----
-
-### 11. AWS migration path (future)
-
-Since the monolith is modular from day one, the migration path when you need it:
-
-1. Extract one module at a time into a standalone Spring Boot service
-2. Replace `ApplicationEvent` internal bus with SQS/SNS or Kafka
-3. Each service gets its own RDS instance (schema already isolated)
-4. Add an API Gateway (AWS API GW or Spring Cloud Gateway) in front
-5. Redis → ElastiCache, Prometheus/Grafana → CloudWatch + Managed Grafana, ELK → OpenSearch
-
----
-
-### 12. Suggested implementation order
-
-1. Project scaffolding (Maven multi-module, Docker Compose skeleton, Flyway migrations per module)
-2. `bank-iam` — auth, JWT, RBAC (everything else depends on this)
-3. `bank-accounts` — account CRUD, double-entry ledger
-4. `bank-audit` — event listener infrastructure
-5. `bank-payments` — transfers, idempotency, state machine
-6. `bank-loans` — origination, schedule, repayment
-7. `bank-notifications` — templates, async dispatch
-8. Observability wiring (Prometheus metrics, JSON logs → ELK)
-9. Seed data + Swagger UI polish for portfolio demo
-
----
-
-This gives you a complete implementation blueprint. Each section maps directly to a coding sprint. When you're ready to start any specific module or layer, just say which one and we'll go deep on the implementation details.
+*For detailed technical documentation, see the `docs/` directory.*
