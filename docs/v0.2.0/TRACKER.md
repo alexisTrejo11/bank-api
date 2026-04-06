@@ -63,7 +63,7 @@ Single checklist for **release 0.2.0** infrastructure and cross-cutting work. Se
 |----|------------|------|
 | V2-S | Spring Security refactor: explicit chains, documented public routes | [x] |
 | V2-C | CORS from configurable properties / env | [x] |
-| V2-L | Rate limiting (Redis) for selected endpoints | [ ] |
+| V2-L | Rate limiting (Redis) for selected endpoints | [x] |
 
 - **PR:** 
 - **Merged at / SHA on `develop`:** 

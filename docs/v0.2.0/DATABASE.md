@@ -28,10 +28,10 @@ Domain modules no longer ship their own `db/migration` copies; each module sets 
 
 | Profile    | Datasource        | Notes                                      |
 |-----------|-------------------|--------------------------------------------|
-| *(default)* | H2 in-memory     | `application.yaml`                         |
+| *(default)* | H2 in-memory     | `application.yaml` + optional env overrides |
 | `test`    | H2 `banktest`     | `application-test.yaml`                    |
-| `postgres`| PostgreSQL local  | `application-postgres.yaml` (dev literals) |
-| `docker`  | PostgreSQL + Redis + Kafka | `application-docker.yaml`           |
+| `postgres`| PostgreSQL        | `application-postgres.yaml` — **`SPRING_DATASOURCE_*` required** (see [CONFIGURATION.md](CONFIGURATION.md)) |
+| `docker`  | PostgreSQL + Redis + Kafka | `application-docker.yaml` + env (see [CONFIGURATION.md](CONFIGURATION.md)) |
 
 ## CI
 

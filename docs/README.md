@@ -27,6 +27,7 @@ If you batch refactors on `develop` first, split work per module using [MONOREPO
 | [v0.2.0/ROADMAP.md](v0.2.0/ROADMAP.md) | Planned infrastructure and cross-cutting improvements |
 | [v0.2.0/TRACKER.md](v0.2.0/TRACKER.md) | Checklist and PR links for 0.2.0 |
 | [v0.2.0/DATABASE.md](v0.2.0/DATABASE.md) | Flyway layout; H2 vs PostgreSQL notes |
+| [v0.2.0/CONFIGURATION.md](v0.2.0/CONFIGURATION.md) | Env vars, `.env`, secrets, Spring profiles |
 | [v0.2.0/ISSUES.md](v0.2.0/ISSUES.md) | Suggested issues ↔ branches |
 
 Agent-facing summaries live under [.agents/](../.agents/) (architecture, domains, conventions).
