@@ -1,299 +1,133 @@
-# Code Showcase
+# Code showcase
 
-## Code Examples (`CodeExample[]`)
-
-### Example 1: Hexagonal Architecture Structure
-
-- **ID**: "code-001"
-- **Title**: "Module Package Structure"
-- **Description**: "Example showing the hexagonal architecture package structure in bank-payments module"
-- **Category**: "Architecture"
-- **Duration**: "N/A"
-- **Views**: 0
-- **Tags**: `["DDD", "Hexagonal", "Ports & Adapters"]`
-
-#### Files (`CodeFile[]`)
-
-- **Name**: "Application Layer"
-- **Path**: "bank-payments/src/main/java/io/github/alexistrejo11/bank/payments/application/handler/command/InitiateTransferHandler.java"
-- **Language**: "java"
-- **Content**:
-  ```java
-  package io.github.alexistrejo11.bank.payments.application.handler.command;
-
-  @Component
-  @RequiredArgsConstructor
-  public class InitiateTransferHandler {
-      private final TransferRepository transferRepository;
-      private final AccountRepository accountRepository;
-      private final TransferIdempotencyPort idempotencyPort;
-      private final ApplicationEventPublisher eventPublisher;
-
-      @Transactional
-      public Result<TransferResponse> handle(InitiateTransferCommand command) {
-          // 1. Idempotency check
-          var cached = idempotencyPort.getCachedOutcome(command.idempotencyKey());
-          if (cached.isPresent()) {
-              return cached.get();
-          }
-          // 2. Load accounts
-          var source = accountRepository.findById(command.sourceId())
-              .orElseThrow(() -> new AccountNotFoundException(command.sourceId()));
-          var target = accountRepository.findById(command.targetId())
-              .orElseThrow(() -> new AccountNotFoundException(command.targetId()));
-          // 3. Domain logic
-          var transfer = Transfer.initiate(source, target, command.amount(), command.idempotencyKey());
-          // 4. Persist
-          var saved = transferRepository.save(transfer);
-          // 5. Publish event
-          eventPublisher.publishEvent(new TransferCompletedEvent(
-              saved.getId(), source.getId(), target.getId(), command.amount()
-          ));
-          // 6. Cache outcome
-          idempotencyPort.cacheOutcome(command.idempotencyKey(), Result.success(toResponse(saved)));
-          return Result.success(toResponse(saved));
-      }
-  }
-  ```
-- **Highlighted**: `true`
-- **Explanation**: "Shows Command handler pattern, idempotency check, domain logic, event publishing"
+Illustrative excerpts tied to real repository paths. Source: [`source/ProjectCodeShowCase.md`](source/ProjectCodeShowCase.md). For full implementations open the linked files in the repo — snippets here may omit imports or local variables for readability.
 
 ---
 
-### Example 2: Double-Entry Ledger
+## 1. Route-level RBAC with Spring Security 6
 
-- **ID**: "code-002"
-- **Title**: "Ledger Posting via Domain Events"
-- **Description**: "How TransferCompletedEvent triggers ledger entries in accounts module"
-- **Category**: "Domain"
-- **Tags**: `["DDD", "Event-Driven", "Ledger"]`
+| Field | Value |
+|--------|--------|
+| **ID** | `security-authority-mapping` |
+| **Category** | security |
+| **Read time** | ~3 min |
+| **Tags** | Spring Security, JWT, RBAC |
 
-#### Files (`CodeFile[]`)
+**Intent:** Show how public auth routes are `permitAll`, banking routes require explicit **authorities**, and `JwtAuthenticationFilter` runs before `UsernamePasswordAuthenticationFilter`.
 
-- **Name**: "Event Listener"
-- **Path**: "bank-accounts/src/main/java/io/github/alexistrejo11/bank/accounts/infrastructure/event/AccountsTransferListener.java"
-- **Language**: "java"
-- **Content**:
-  ```java
-  package io.github.alexistrejo11.bank.accounts.infrastructure.event;
+**File:** [`bank-config/src/main/java/io/github/alexisTrejo11/bank/security/SecurityConfig.java`](../../bank-config/src/main/java/io/github/alexisTrejo11/bank/security/SecurityConfig.java)
 
-  @Component
-  public class AccountsTransferListener {
-      private final PostTransferToLedgerUseCase postTransferToLedgerUseCase;
+**Excerpt (illustrative — not a full class):**
 
-      @Async
-      @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-      public void on(TransferCompletedEvent event) {
-          postTransferToLedgerUseCase.post(
-              event.transferId(),
-              event.sourceAccountId(),
-              event.targetAccountId(),
-              event.amount()
-          );
-      }
-  }
-  ```
-- **Highlighted**: `true`
-- **Explanation**: "AFTER_COMMIT ensures ledger posts only on successful transfer commit"
+```java
+@Bean
+@Order(2)
+SecurityFilterChain apiSecurityFilterChain(
+    HttpSecurity http,
+    JwtAuthenticationFilter jwtAuthenticationFilter,
+    CorsConfigurationSource bankCorsConfigurationSource) throws Exception {
+  return http
+      .csrf(AbstractHttpConfigurer::disable)
+      .cors(c -> c.configurationSource(bankCorsConfigurationSource))
+      .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+      .authorizeHttpRequests(a -> a
+          .requestMatchers(
+              "/api/v1/auth/register",
+              "/api/v1/auth/login",
+              "/api/v1/auth/refresh",
+              "/swagger-ui/**",
+              "/v3/api-docs/**",
+              "/.well-known/jwks.json")
+          .permitAll()
+          .requestMatchers(HttpMethod.POST, "/api/v1/payments/transfers")
+          .hasAuthority("payments:write")
+          .requestMatchers(HttpMethod.GET, "/api/v1/audit/records")
+          .hasAuthority("audit:read")
+          .anyRequest().authenticated())
+      .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+      .build();
+}
+```
 
-- **Name**: "Use Case Interface"
-- **Path**: "bank-accounts/src/main/java/io/github/alexistrejo11/bank/accounts/domain/port/in/command/PostTransferToLedgerUseCase.java"
-- **Language**: "java"
-- **Content**:
-  ```java
-  package io.github.alexistrejo11.bank.accounts.domain.port.in.command;
-
-  public interface PostTransferToLedgerUseCase {
-      void post(TransferId transferId, AccountId sourceId, AccountId targetId, Money amount);
-  }
-  ```
-
----
-
-### Example 3: JWT Token Service
-
-- **ID**: "code-003"
-- **Title**: "RS256 JWT Authentication"
-- **Description**: "JWT generation with RS256 asymmetric keys"
-- **Category**: "Security"
-- **Tags**: `["JWT", "RS256", "Spring Security"]`
-
-#### Files (`CodeFile[]`)
-
-- **Name**: "JwtTokenService"
-- **Path**: "bank-iam/src/main/java/io/github/alexistrejo11/bank/iam/infrastructure/security/JwtTokenService.java"
-- **Language**: "java"
-- **Content**:
-  ```java
-  @Component
-  @RequiredArgsConstructor
-  public class JwtTokenService {
-      private final RSAPrivateKey privateKey;
-      private final RSAPublicKey publicKey;
-      private final JwtBlocklistStore blocklistStore;
-
-      public String generateAccessToken(User user) {
-          var now = Instant.now();
-          var expiry = now.plus(Duration.ofMinutes(15));
-          var jti = UUID.randomUUID().toString();
-
-          return Jwts.builder()
-              .id(jti)
-              .subject(user.getId().toString())
-              .claim("roles", user.getRoles().stream().map(Role::getName).toList())
-              .claim("permissions", user.getPermissions().stream().map(Permission::getName).toList())
-              .issuedAt(now)
-              .expiration(expiry)
-              .signWith(privateKey, JWSAlgorithm.RS256)
-              .compact();
-      }
-
-      public boolean validateToken(String token) {
-          try {
-              var jws = Jwts.parser()
-                  .verifyWith(publicKey)
-                  .build()
-                  .parseSignedClaims(token);
-              var jti = jws.getPayload().getId();
-              return !blocklistStore.isBlocked(jti);
-          } catch (JwtException e) {
-              return false;
-          }
-      }
-  }
-  ```
-- **Highlighted**: `true`
-- **Explanation**: "RS256 asymmetric signing, JTI for blocklist, claims for RBAC"
+**Note:** The real `SecurityConfig` lists every banking route; the excerpt is shortened. Actuator uses a **separate** filter chain that permits all `/actuator/**` — lock down at the **network** layer on AWS.
 
 ---
 
-### Example 4: Rate Limiting Annotation
+## 2. Paired ledger rows in one transaction
 
-- **ID**: "code-004"
-- **Title**: "Per-Endpoint Rate Limiting"
-- **Description**: "Using @RateLimit annotation on sensitive endpoints"
-- **Category**: "Security"
-- **Tags**: `["Rate Limiting", "Redis"]`
+| Field | Value |
+|--------|--------|
+| **ID** | `double-entry-ledger-handler` |
+| **Category** | domain |
+| **Read time** | ~4 min |
+| **Tags** | DDD, Ledger, Transactional |
 
-#### Files (`CodeFile[]`)
+**Intent:** `PostTransferToLedgerHandler` loads both accounts, validates **currency** and **status**, then persists a **DEBIT** and **CREDIT** sharing the same business reference id via `savePair`.
 
-- **Name**: "Transfer Controller with Rate Limit"
-- **Path**: "bank-payments/src/main/java/io/github/alexistrejo11/bank/payments/api/controller/TransferController.java"
-- **Language**: "java"
-- **Content**:
-  ```java
-  @RestController
-  @RequestMapping("/api/v1/transfers")
-  @RequiredArgsConstructor
-  @Tag(name = "Payments")
-  public class TransferController {
-      private final InitiateTransferHandler handler;
+**File:** [`bank-accounts/src/main/java/io/github/alexistrejo11/bank/accounts/application/handler/command/PostTransferToLedgerHandler.java`](../../bank-accounts/src/main/java/io/github/alexistrejo11/bank/accounts/application/handler/command/PostTransferToLedgerHandler.java)
 
-      @PostMapping
-      @PreAuthorize("hasAuthority('payments:write')")
-      @RateLimit(profile = RateLimitProfile.SENSITIVE_OPERATIONS)
-      public ResponseEntity<ApiResponse<TransferResponse>> transfer(
-          @RequestHeader("Idempotency-Key") String idempotencyKey,
-          @Valid @RequestBody TransferFundsRequest request
-      ) {
-          var command = new InitiateTransferCommand(
-              AccountId.of(request.sourceAccountId()),
-              AccountId.of(request.targetAccountId()),
-              new Money(request.amount(), Currency.of(request.currency())),
-              idempotencyKey
-          );
-          var result = handler.handle(command);
-          // ... response handling
-      }
+**Excerpt (abbreviated — `ccy`, `ref`, `now` omitted here; see repo for full method):**
+
+```java
+@Transactional
+public void execute(PostTransferToLedgerCommand command) {
+  BankAccount fromAcc = accountRepository.findById(command.from().value())
+      .orElseThrow(() -> new AccountNotFoundException("Source account not found"));
+  BankAccount toAcc = accountRepository.findById(command.to().value())
+      .orElseThrow(() -> new AccountNotFoundException("Target account not found"));
+  if (!fromAcc.currency().equals(ccy) || !toAcc.currency().equals(ccy)) {
+    throw new InvalidTransferException("Currency mismatch between accounts and transfer");
   }
-  ```
-- **Highlighted**: `true`
-- **Explanation**: "@RateLimit profile='sensitive_operations' limits to 6 req/min"
+  LedgerEntry debit = new LedgerEntry(
+      UUID.randomUUID(), command.from().value(), LedgerEntryType.DEBIT,
+      command.amount(), ccy, command.referenceType(), ref, now);
+  LedgerEntry credit = new LedgerEntry(
+      UUID.randomUUID(), command.to().value(), LedgerEntryType.CREDIT,
+      command.amount(), ccy, command.referenceType(), ref, now);
+  ledgerEntryRepository.savePair(debit, credit);
+}
+```
 
 ---
 
-### Example 5: Result Type for Error Handling
+## 3. Transfer API with required `Idempotency-Key`
 
-- **ID**: "code-005"
-- **Title**: "Explicit Error Handling with Result<T>"
-- **Description**: "Using sealed Result<T> interface for recoverable business errors"
-- **Category**: "Pattern"
-- **Tags**: `["Error Handling", "Functional"]`
+| Field | Value |
+|--------|--------|
+| **ID** | `payments-idempotency-header` |
+| **Category** | api |
+| **Read time** | ~2 min |
+| **Tags** | Payments, Idempotency, REST |
 
-#### Files (`CodeFile[]`)
+**Intent:** `InitiateTransferHandler` receives a **UUID** idempotency header so Redis can deduplicate client retries.
 
-- **Name**: "Result Interface"
-- **Path**: "bank-shared/src/main/java/io/github/alexistrejo11/bank/shared/result/Result.java"
-- **Language**: "java"
-- **Content**:
-  ```java
-  public sealed interface Result<T> permits Result.Success, Result.Failure {
-      record Success<T>(T value) implements Result<T> {
-          public boolean isSuccess() { return true; }
-      }
-      record Failure<T>(String code, String message) implements Result<T> {
-          public boolean isSuccess() { return false; }
-      }
+**File:** [`bank-payments/src/main/java/io/github/alexistrejo11/bank/payments/presentation/controller/TransferController.java`](../../bank-payments/src/main/java/io/github/alexistrejo11/bank/payments/presentation/controller/TransferController.java)
 
-      static <T> Result<T> success(T value) { return new Success<>(value); }
-      static <T> Result<T> failure(String code, String message) { return new Failure<>(code, message); }
-  }
-  ```
+**Excerpt:**
 
-- **Name**: "Usage in Handler"
-- **Path**: "bank-payments/src/main/java/.../InitiateTransferHandler.java (excerpt)"
-- **Language**: "java"
-- **Content**:
-  ```java
-  // In handler
-  if (!source.hasSufficientFunds(amount)) {
-      return Result.failure("INSUFFICIENT_FUNDS", "Account balance is below transfer amount");
-  }
-  return Result.success(toResponse(saved));
-
-  // In controller
-  var result = handler.handle(command);
-  if (!result.isSuccess()) {
-      var failure = (Result.Failure<?>) result;
-      return ResponseEntity.unprocessableEntity()
-          .body(ApiResponse.failure(failure.code(), failure.message()));
-  }
-  return ResponseEntity.ok(ApiResponse.success(((Result.Success<TransferResponse>) result).value()));
-  ```
+```java
+@PostMapping("/transfers")
+public ResponseEntity<ApiResponse<?>> transfer(
+    @AuthenticationPrincipal IamUserPrincipal principal,
+    @RequestHeader("Idempotency-Key") UUID idempotencyKey,
+    @Valid @RequestBody TransferFundsRequest request) {
+  var command = new InitiateTransferCommand(
+      principal.userId(), idempotencyKey,
+      request.sourceAccountId(), request.targetAccountId(),
+      request.amount(), request.currency());
+  Result<TransferResponse> result = initiateTransferHandler.handle(command);
+  return toResponse(result);
+}
+```
 
 ---
 
-### Example 6: Event-Driven Audit
+## Follow-ups
 
-- **ID**: "code-006"
-- **Title**: "Immutable Audit Records"
-- **Description**: "AuditEventListener writes immutable audit records on domain events"
-- **Category**: "Observability"
-- **Tags**: `["Audit", "Event-Driven"]`
+- Add a **fourth** showcase for **Kafka consumer** or **`@TransactionalEventListener(AFTER_COMMIT)`** once MSK consumer code is stable in-tree.  
+- Prefer linking to **line ranges** on GitHub for code review deep links.
 
-#### Files (`CodeFile[]`)
+## Related
 
-- **Name**: "Audit Listener"
-- **Path**: "bank-audit/src/main/java/io/github/alexistrejo11/bank/audit/infrastructure/event/AuditEventListener.java"
-- **Language**: "java"
-- **Content**:
-  ```java
-  @Component
-  @RequiredArgsConstructor
-  public class AuditEventListener {
-      private final AppendAuditRecordUseCase appendAuditRecordUseCase;
-
-      @Async
-      @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-      public void on(BankDomainEvent event) {
-          var command = new AppendAuditRecordCommand(
-              event.getClass().getSimpleName(),
-              event.actorId(),
-              event.entityType(),
-              event.entityId(),
-              event.toJson()
-          );
-          appendAuditRecordUseCase.append(command);
-      }
-  }
-  ```
+- [ProjectArchitectureModel.md](ProjectArchitectureModel.md) — where these pieces sit  
+- [APISchema.md](APISchema.md) — HTTP contract for transfers  

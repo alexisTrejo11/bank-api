@@ -1,13 +1,13 @@
 package io.github.alexistrejo11.bank.iam.application.handler.command;
 
-import io.github.alexistrejo11.bank.iam.api.dto.request.RegisterRequest;
-import io.github.alexistrejo11.bank.iam.api.dto.response.TokenResponse;
 import io.github.alexistrejo11.bank.iam.application.AuthTokenService;
+import io.github.alexistrejo11.bank.iam.domain.exception.EmailAlreadyRegisteredException;
 import io.github.alexistrejo11.bank.iam.domain.model.User;
 import io.github.alexistrejo11.bank.iam.domain.model.UserStatus;
-import io.github.alexistrejo11.bank.iam.domain.port.out.UserRepository;
-import io.github.alexistrejo11.bank.iam.exception.EmailAlreadyRegisteredException;
-import io.github.alexistrejo11.bank.shared.ids.UserId;
+import io.github.alexistrejo11.bank.iam.domain.repository.UserRepository;
+import io.github.alexistrejo11.bank.iam.presentation.dto.request.RegisterRequest;
+import io.github.alexistrejo11.bank.iam.presentation.dto.response.TokenResponse;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.UserId;
 import java.util.Set;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -23,8 +23,7 @@ public class RegisterUserHandler {
 	public RegisterUserHandler(
 			UserRepository userRepository,
 			PasswordEncoder passwordEncoder,
-			AuthTokenService authTokenService
-	) {
+			AuthTokenService authTokenService) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.authTokenService = authTokenService;
@@ -43,8 +42,7 @@ public class RegisterUserHandler {
 				hash,
 				UserStatus.ACTIVE,
 				Set.of("USER"),
-				Set.of()
-		);
+				Set.of());
 		userRepository.save(user);
 		User loaded = userRepository.findByEmail(request.email()).orElseThrow();
 		return authTokenService.issueForUser(loaded);

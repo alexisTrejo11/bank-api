@@ -77,7 +77,7 @@ class PaymentsModuleIT {
 		mockMvc.perform(post("/api/v1/auth/register")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"))
-				.andExpect(status().isOk());
+				.andExpect(status().isCreated());
 		MvcResult login = mockMvc.perform(post("/api/v1/auth/login")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"))

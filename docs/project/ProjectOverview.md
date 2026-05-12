@@ -1,119 +1,65 @@
-# Project Overview
+# Project overview
 
-## 1. Problem Statement (`OverviewProblemStatement`)
+Narrative overview derived from [`source/ProjectOverview.md`](source/ProjectOverview.md). For identity and stack list see [Project metadata](ProjectMetadata.md). For links see [Project links](ProjectLinks.md).
 
-- **Problem Title**: Modern Banking System Requirements
-- **Problem Description**:
-  - Traditional banking systems are monolithic and difficult to scale
-  - Lack of modularity makes it hard to add new features or extract microservices
-  - No unified API documentation for developers
-  - Limited observability and monitoring capabilities
+## Problem statement
 
-- **Problem List**:
-  - Monolithic architecture with tight coupling between domains
-  - No standardized API documentation (Swagger/OpenAPI)
-  - Limited production-ready infrastructure (PostgreSQL, Redis, Kafka need configuration)
-  - Missing circuit breaker patterns for external service resilience
+**Title:** Need a compliant, evolvable banking core without premature microservices.
 
----
+**Context:** Core banking behaviors—authentication, accounts, immutable audit, payments with idempotency, loans, and operational visibility—must stay consistent under failure and retries. The codebase should remain testable and modular so bounded contexts can be split out later, without operating nine separate deployables on day one.
 
-## 2. Solution (`OverviewSolution`)
+**Pain points**
 
-- **Solution Title**: Modular Monolith Banking API
-- **Solution List** (array of `Solution`):
-  - **Solution 1** - Modular Monolith Architecture
-    - **Title**: Hexagonal/Ports & Adapters Architecture
-    - **Description**: Each domain (IAM, Accounts, Payments, Loans, Notifications, Audit) is a separate Maven module with clear boundaries. Communication only via ApplicationEvents and shared value objects.
-  - **Solution 2** - Production-Ready Infrastructure
-    - **Title**: Docker Compose with PostgreSQL, Redis, Kafka
-    - **Description**: Ready-to-use infrastructure configuration for local development and production deployment with the `docker` profile.
+1. Financial writes need **atomicity** and a clear ordering of **side-effects** (no notifications or audit rows after a rolled-back transaction).  
+2. **HTTP retries** must not double-post money movements; **idempotency** and **ledger** rules must be first-class.  
+3. Regulators and operators expect **append-only audit** trails and searchable evidence, not logs alone.  
+4. Teams want **one deployable** for velocity, but explicit **module seams** for a future AWS split (ECS services per context, MSK topics, etc.).
 
----
+## Solution
 
-## 3. Key Metrics (`OverviewKeyMetrics`)
+**Title:** Modular monolith on Spring Boot with hexagonal-style ports and domain events.
 
-- **Metrics Title**: Project Health Indicators
-- **Metrics List** (strings):
-  - 8 Maven modules (bank-shared, bank-iam, bank-accounts, bank-audit, bank-payments, bank-loans, bank-notifications, bank-boot)
-  - 12 integration tests passing
-  - Java 21 + Spring Boot 4.0.5
-  - 7 domain modules with DDD patterns
+| Pillar | Description |
+|--------|-------------|
+| **Single runtime, multiple Maven modules** | Nine modules compile into one Spring Boot JAR (`bank-boot`). Spring Modulith documents and enforces module relationships. |
+| **Double-entry ledger and derived balances** | Mutations persist balanced DEBIT/CREDIT `LedgerEntry` rows; balances derive from ledger sums. |
+| **After-commit domain integration** | Cross-module reactions use Spring application events and transactional boundaries so consumers align with successful commits where configured. |
+| **JWT session model with Redis** | RS256 access tokens, refresh rotation, Redis-backed revocation metadata — suitable for ALB → stateless ECS tasks. |
+| **AWS-shaped operations** | Production is described as ECS Fargate behind ALB, RDS PostgreSQL, ElastiCache Redis, and MSK — analogous to Docker Compose locally. |
 
-See also [ProjectMetric.md](ProjectMetric.md) for richer metrics.
+## Key metrics (narrative)
 
----
+**Section title (source):** Snapshot metrics (code + docs).
 
-## 4. Cover Image (`ProjectCoverImage`, optional)
+- Nine Maven modules (including `bank-config` and `bank-boot`).  
+- Seventeen HTTP JSON endpoints under `/api/v1` (plus Actuator and OpenAPI static routes).  
+- Spring Boot **4.0.5** / Java **21**.  
+- PostgreSQL **16** + Redis **7** + Kafka (Compose: ZooKeeper + Confluent broker).  
+- Rate limiting: optional Redis global + annotated profiles.  
+- Target production: **AWS ECS + RDS + ElastiCache + MSK** (see [Infrastructure](InfrastructureModel.md)).
 
-- **URL**: "" <!-- [PLACEHOLDER: Add cover image URL] -->
-- **Alt**: "Bank API Architecture Diagram"
-- **Credit** (optional): ""
+## Cover image (placeholder)
 
----
+| Field | Value |
+|--------|--------|
+| **URL** | `https://cdn.PLACEHOLDER.example/bank-api/cover-architecture.png` |
+| **Alt** | Logical view: client, ALB, ECS tasks, RDS, Redis, MSK |
+| **Credit** | Alexis Trejo — replace URL after uploading a real diagram to S3/CloudFront |
 
-## 5. Links (`ProjectLinks`)
+## Risks, gaps, and observations
 
-See [ProjectLinks.md](ProjectLinks.md).
+- **Compose uses HTTP on port 80** at nginx — **no TLS** in the checked stack. On AWS, terminate TLS at the **ALB** with **ACM**.  
+- **Rate limit `failOpen`**: when Redis is unhealthy, traffic may proceed without throttling — document whether fraud-sensitive endpoints should ever use `failOpen=false`.  
+- **Good:** `SecurityConfig` maps routes to fine-grained **authorities** (`accounts:read`, `payments:write`, …), which maps cleanly to IAM policies or Cognito groups.  
+- **Missing:** All `cdn.PLACEHOLDER.example` URLs are fictional until you upload real media.  
+- **Observation:** Compose uses **Confluent Kafka + ZooKeeper**, not Redpanda; **MSK** is the natural AWS counterpart.  
+- **Observation:** `bank-config` holds cross-cutting security; keep dependencies one-way when extracting microservices later.
 
-- **GitHub**: https://github.com/alexistrejo11/bank-api
-- **Demo**: "" <!-- [PLACEHOLDER: Add demo URL when available] -->
-- **Documentation**: https://github.com/alexistrejo11/bank-api/tree/main/docs
-- **Docker Hub**: "" <!-- [PLACEHOLDER: Add Docker Hub URL if published] -->
+## Related documentation
 
----
-
-## 6. Media Gallery Section (`MediaGallerySection`)
-
-See [MediaGallerySection.md](MediaGallerySection.md).
-
-- **Title**: Project Screenshots and Diagrams
-- **Description**: Visual documentation of the Bank API system
-- **Items**: list of media items (see `ProjectMediaItem` in MediaGallerySection.md).
-
----
-
-## 7. Media Items (`ProjectMediaItem[]`)
-
-For each media item:
-
-- **Type**: `image` | `video`
-- **URL**: "" <!-- [PLACEHOLDER: Add media URL] -->
-- **Thumbnail** (optional): "" <!-- [PLACEHOLDER: Add thumbnail URL] -->
-- **Title**: "" <!-- [PLACEHOLDER: Add title] -->
-- **Description**: "" <!-- [PLACEHOLDER: Add description] -->
-- **Alt** (optional): "" <!-- [PLACEHOLDER: Add alt text] -->
-- **Category** (optional): `screenshot` | `diagram` | `demo` | `architecture`
-
----
-
-## 8. Metrics (`ProjectMetric[]`)
-
-For each metric see [ProjectMetric.md](ProjectMetric.md):
-
-- **Label**: "Modules"
-- **Value**: "8"
-- **Description**: "Maven modules in the project"
-- **Icon**: "📦"
-- **Unit**: "count"
-- **Trend**: `stable`
-
-- **Label**: "Tests"
-- **Value**: "12"
-- **Description**: "Integration tests passing"
-- **Icon**: "✅"
-- **Unit**: "count"
-- **Trend**: `stable`
-
-- **Label**: "Java Version"
-- **Value**: "21"
-- **Description**: "Java LTS version"
-- **Icon**: "☕"
-- **Unit**: "version"
-- **Trend**: `stable`
-
-- **Label**: "Spring Boot"
-- **Value**: "4.0.5"
-- **Description**: "Spring Boot framework version"
-- **Icon**: "🌱"
-- **Unit**: "version"
-- **Trend**: `stable`
+| Page | Topic |
+|------|--------|
+| [ProjectArchitectureModel.md](ProjectArchitectureModel.md) | Layers, diagrams, ADRs |
+| [ProjectFeatures.md](ProjectFeatures.md) | Feature catalog |
+| [APISchema.md](APISchema.md) | REST reference |
+| [MediaGallerySection.md](MediaGallerySection.md) | Visual placeholders |

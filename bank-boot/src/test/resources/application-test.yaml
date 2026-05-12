@@ -3,11 +3,14 @@ spring:
     url: jdbc:h2:mem:banktest;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
     username: sa
     password:
+    driver-class-name: org.h2.Driver
   jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: validate
   flyway:
     enabled: true
+    # H2 tests: skip PostgreSQL-only migrations (e.g. PL/pgSQL triggers under db/migration/postgresql).
     locations: classpath:db/migration
 
 management:

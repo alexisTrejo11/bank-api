@@ -1,12 +1,12 @@
 package io.github.alexistrejo11.bank.loans.infrastructure.persistence.entity;
 
 import io.github.alexistrejo11.bank.loans.domain.model.RepaymentStatus;
+import io.github.alexistrejo11.bank.shared.shared_kernel.persistence.UuidJpaEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -17,10 +17,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "loan_repayments")
-public class LoanRepaymentEntity {
-
-	@Id
-	private UUID id;
+public class LoanRepaymentEntity extends UuidJpaEntity {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "loan_id", nullable = false)
@@ -45,24 +42,65 @@ public class LoanRepaymentEntity {
 	protected LoanRepaymentEntity() {
 	}
 
-	public LoanRepaymentEntity(
-			UUID id,
-			int installmentNumber,
-			LocalDate dueDate,
-			BigDecimal amount,
-			RepaymentStatus status,
-			Instant paidAt
-	) {
-		this.id = id;
-		this.installmentNumber = installmentNumber;
-		this.dueDate = dueDate;
-		this.amount = amount;
-		this.status = status;
-		this.paidAt = paidAt;
+	public static Builder builder() {
+		return new Builder();
 	}
 
-	public UUID getId() {
-		return id;
+	public static final class Builder {
+		private UUID id;
+		private LoanEntity loan;
+		private int installmentNumber;
+		private LocalDate dueDate;
+		private BigDecimal amount;
+		private RepaymentStatus status;
+		private Instant paidAt;
+
+		public Builder id(UUID id) {
+			this.id = id;
+			return this;
+		}
+
+		public Builder loan(LoanEntity loan) {
+			this.loan = loan;
+			return this;
+		}
+
+		public Builder installmentNumber(int installmentNumber) {
+			this.installmentNumber = installmentNumber;
+			return this;
+		}
+
+		public Builder dueDate(LocalDate dueDate) {
+			this.dueDate = dueDate;
+			return this;
+		}
+
+		public Builder amount(BigDecimal amount) {
+			this.amount = amount;
+			return this;
+		}
+
+		public Builder status(RepaymentStatus status) {
+			this.status = status;
+			return this;
+		}
+
+		public Builder paidAt(Instant paidAt) {
+			this.paidAt = paidAt;
+			return this;
+		}
+
+		public LoanRepaymentEntity build() {
+			LoanRepaymentEntity e = new LoanRepaymentEntity();
+			e.id = id;
+			e.loan = loan;
+			e.installmentNumber = installmentNumber;
+			e.dueDate = dueDate;
+			e.amount = amount;
+			e.status = status;
+			e.paidAt = paidAt;
+			return e;
+		}
 	}
 
 	public LoanEntity getLoan() {

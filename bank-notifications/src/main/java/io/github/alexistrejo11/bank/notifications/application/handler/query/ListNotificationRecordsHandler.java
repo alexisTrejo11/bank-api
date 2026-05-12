@@ -3,7 +3,7 @@ package io.github.alexistrejo11.bank.notifications.application.handler.query;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationLogRecord;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationRecordFilters;
 import io.github.alexistrejo11.bank.notifications.domain.port.out.NotificationLogRepository;
-import io.github.alexistrejo11.bank.shared.page.PageResult;
+import io.github.alexistrejo11.bank.shared.shared_kernel.page.PageResult;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 

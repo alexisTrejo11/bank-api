@@ -13,6 +13,11 @@
 	<dependencies>
 		<dependency>
 			<groupId>io.github.alexistrejo11</groupId>
+			<artifactId>bank-shared</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.github.alexistrejo11</groupId>
 			<artifactId>bank-iam</artifactId>
 			<version>${project.version}</version>
 		</dependency>

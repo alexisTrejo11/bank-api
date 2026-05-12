@@ -2,10 +2,10 @@ package io.github.alexistrejo11.bank.accounts.application.handler.query;
 
 import io.github.alexistrejo11.bank.accounts.domain.exception.AccountNotFoundException;
 import io.github.alexistrejo11.bank.accounts.domain.model.LedgerEntry;
-import io.github.alexistrejo11.bank.accounts.domain.port.out.AccountRepository;
-import io.github.alexistrejo11.bank.accounts.domain.port.out.LedgerEntryRepository;
-import io.github.alexistrejo11.bank.accounts.domain.query.GetAccountLedgerQuery;
-import io.github.alexistrejo11.bank.shared.page.PageResult;
+import io.github.alexistrejo11.bank.accounts.domain.repository.AccountRepository;
+import io.github.alexistrejo11.bank.accounts.domain.repository.LedgerEntryRepository;
+import io.github.alexistrejo11.bank.accounts.application.query.GetAccountLedgerQuery;
+import io.github.alexistrejo11.bank.shared.shared_kernel.page.PageResult;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 

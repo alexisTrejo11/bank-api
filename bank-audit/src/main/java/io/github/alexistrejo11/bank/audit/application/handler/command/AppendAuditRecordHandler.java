@@ -1,8 +1,8 @@
 package io.github.alexistrejo11.bank.audit.application.handler.command;
 
-import io.github.alexistrejo11.bank.audit.domain.command.AppendAuditRecordCommand;
+import io.github.alexistrejo11.bank.audit.application.command.AppendAuditRecordCommand;
 import io.github.alexistrejo11.bank.audit.domain.model.AuditRecord;
-import io.github.alexistrejo11.bank.audit.domain.port.out.AuditRecordRepository;
+import io.github.alexistrejo11.bank.audit.domain.repository.AuditRecordRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +18,7 @@ public class AppendAuditRecordHandler {
 
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public void handle(AppendAuditRecordCommand command) {
-		auditRecordRepository.append(new AuditRecord(
+		var auditRecord = new AuditRecord(
 				command.id(),
 				command.eventType(),
 				command.actorId(),
@@ -26,6 +26,8 @@ public class AppendAuditRecordHandler {
 				command.entityId(),
 				command.payloadJson(),
 				command.createdAt()
-		));
+		);
+		
+		auditRecordRepository.append(auditRecord);
 	}
 }

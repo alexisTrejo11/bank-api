@@ -9,13 +9,14 @@ import io.github.alexistrejo11.bank.loans.domain.model.LoanAggregate;
 import io.github.alexistrejo11.bank.loans.domain.model.LoanRepaymentLine;
 import io.github.alexistrejo11.bank.loans.domain.model.LoanStatus;
 import io.github.alexistrejo11.bank.loans.domain.model.RepaymentStatus;
-import io.github.alexistrejo11.bank.loans.domain.command.PayLoanRepaymentCommand;
-import io.github.alexistrejo11.bank.loans.domain.port.out.LoanLedgerOperationsPort;
-import io.github.alexistrejo11.bank.loans.domain.port.out.LoanRepository;
-import io.github.alexistrejo11.bank.shared.event.LoanPaidOffEvent;
-import io.github.alexistrejo11.bank.shared.ids.AccountId;
-import io.github.alexistrejo11.bank.shared.ids.UserId;
-import io.github.alexistrejo11.bank.shared.result.Result;
+import io.github.alexistrejo11.bank.loans.application.command.PayLoanRepaymentCommand;
+import io.github.alexistrejo11.bank.loans.domain.repository.LoanLedgerOperationsRepository;
+import io.github.alexistrejo11.bank.loans.domain.repository.LoanRepository;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.AccountId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.UserId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.result.Result;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanPaidOffEvent;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -38,7 +39,7 @@ class LoanRepaymentHandlersTest {
 	LoanRepository loanRepository;
 
 	@Mock
-	LoanLedgerOperationsPort ledgerOperationsPort;
+  LoanLedgerOperationsRepository ledgerOperationsPort;
 
 	@Mock
 	ApplicationEventPublisher eventPublisher;
@@ -52,7 +53,8 @@ class LoanRepaymentHandlersTest {
 		UUID loanId = UUID.randomUUID();
 		UUID repId = UUID.randomUUID();
 		UserId userId = UserId.random();
-		LoanRepaymentLine rep = new LoanRepaymentLine(repId, 1, LocalDate.now(), new BigDecimal("100"), RepaymentStatus.PAID, Instant.now());
+		LoanRepaymentLine rep = new LoanRepaymentLine(repId, 1, LocalDate.now(), new BigDecimal("100"),
+				RepaymentStatus.PAID, Instant.now());
 		LoanAggregate loan = baseLoan(loanId, userId, rep);
 
 		when(loanRepository.findWithRepayments(loanId, userId.value())).thenReturn(Optional.of(loan));
@@ -69,7 +71,8 @@ class LoanRepaymentHandlersTest {
 		UUID repId = UUID.randomUUID();
 		UUID checking = UUID.randomUUID();
 		UserId userId = UserId.random();
-		LoanRepaymentLine rep = new LoanRepaymentLine(repId, 1, LocalDate.now(), new BigDecimal("500"), RepaymentStatus.PENDING, null);
+		LoanRepaymentLine rep = new LoanRepaymentLine(repId, 1, LocalDate.now(), new BigDecimal("500"),
+				RepaymentStatus.PENDING, null);
 		LoanAggregate loan = new LoanAggregate(
 				loanId,
 				userId.value(),
@@ -83,15 +86,15 @@ class LoanRepaymentHandlersTest {
 				LoanStatus.ACTIVE,
 				Instant.now(),
 				Instant.now(),
-				List.of(rep)
-		);
+				List.of(rep));
 
 		when(loanRepository.findWithRepayments(loanId, userId.value())).thenReturn(Optional.of(loan));
 
 		Result<?> r = payLoanRepaymentHandler.handle(userId, new PayLoanRepaymentCommand(loanId, repId));
 		assertThat(r.isSuccess()).isTrue();
 
-		verify(ledgerOperationsPort).recordRepayment(eq(loanId), eq(repId), eq(AccountId.of(checking)), eq(new BigDecimal("500")), eq("USD"));
+		verify(ledgerOperationsPort).recordRepayment(eq(loanId), eq(repId), eq(AccountId.of(checking)),
+				eq(new BigDecimal("500")), eq("USD"));
 
 		ArgumentCaptor<Object> cap = ArgumentCaptor.forClass(Object.class);
 		verify(eventPublisher).publishEvent(cap.capture());
@@ -112,7 +115,6 @@ class LoanRepaymentHandlersTest {
 				LoanStatus.ACTIVE,
 				Instant.now(),
 				Instant.now(),
-				List.of(rep)
-		);
+				List.of(rep));
 	}
 }

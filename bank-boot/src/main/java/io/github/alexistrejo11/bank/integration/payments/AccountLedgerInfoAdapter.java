@@ -1,10 +1,9 @@
 package io.github.alexistrejo11.bank.integration.payments;
 
-import io.github.alexistrejo11.bank.accounts.domain.port.out.AccountLedgerQueryPort;
-import io.github.alexistrejo11.bank.payments.domain.port.out.AccountLedgerInfoPort;
-import io.github.alexistrejo11.bank.payments.domain.port.out.AccountLedgerInfoPort.AccountLedgerInfo;
-import io.github.alexistrejo11.bank.shared.ids.AccountId;
-import io.github.alexistrejo11.bank.shared.ids.UserId;
+import io.github.alexistrejo11.bank.accounts.domain.repository.AccountLedgerQueryPort;
+import io.github.alexistrejo11.bank.payments.domain.repository.AccountLedgerInfoPort;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.AccountId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.UserId;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +23,6 @@ public class AccountLedgerInfoAdapter implements AccountLedgerInfoPort {
 				new UserId(ctx.userId()),
 				ctx.currencyCode(),
 				ctx.ledgerBalance(),
-				ctx.active()
-		));
+				ctx.active()));
 	}
 }

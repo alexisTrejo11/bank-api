@@ -1,7 +1,7 @@
 package io.github.alexistrejo11.bank.payments.infrastructure.idempotency;
 
-import io.github.alexistrejo11.bank.payments.domain.port.out.TransferIdempotencyPort;
-import io.github.alexistrejo11.bank.shared.ids.UserId;
+import io.github.alexistrejo11.bank.payments.domain.repository.TransferIdempotencyPort;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.UserId;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;

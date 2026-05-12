@@ -1,9 +1,9 @@
 package io.github.alexistrejo11.bank.infrastructure.ratelimit;
 
-import io.github.alexistrejo11.bank.iam.infrastructure.security.IamUserPrincipal;
-import io.github.alexistrejo11.bank.shared.ratelimit.RateLimit;
-import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitProfile;
-import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitScope;
+import io.github.alexistrejo11.bank.shared.shared_kernel.auth.IamUserPrincipal;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ratelimit.RateLimit;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ratelimit.RateLimitProfile;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ratelimit.RateLimitScope;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.lang.NonNull;
@@ -31,8 +31,7 @@ public final class AnnotatedRateLimitInterceptor implements HandlerInterceptor {
 	public boolean preHandle(
 			@NonNull HttpServletRequest request,
 			@NonNull HttpServletResponse response,
-			@NonNull Object handler
-	) throws Exception {
+			@NonNull Object handler) throws Exception {
 		if (!(handler instanceof HandlerMethod hm)) {
 			return true;
 		}
@@ -54,8 +53,7 @@ public final class AnnotatedRateLimitInterceptor implements HandlerInterceptor {
 					response,
 					d.retryAfterSeconds(),
 					(long) spec.getCapacity(),
-					0L
-			);
+					0L);
 			return false;
 		}
 		response.setHeader("X-RateLimit-Limit-Endpoint", Long.toString(spec.getCapacity()));

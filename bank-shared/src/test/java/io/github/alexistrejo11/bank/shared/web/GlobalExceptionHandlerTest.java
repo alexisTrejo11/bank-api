@@ -5,8 +5,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
-import io.github.alexistrejo11.bank.shared.exception.BankException;
-import io.github.alexistrejo11.bank.shared.exception.ResourceNotFoundException;
+import io.github.alexistrejo11.bank.shared.shared_kernel.exception.BankException;
+import io.github.alexistrejo11.bank.shared.shared_kernel.exception.ResourceNotFoundException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,13 +29,14 @@ class GlobalExceptionHandlerTest {
 
 		@GetMapping("/test/bank")
 		void bank() {
-			throw new BankException("BAD", "nope") { };
+			throw new BankException("BAD", "nope") {
+			};
 		}
 	}
 
 	@BeforeEach
 	void setUp() {
-		mockMvc = standaloneSetup(new TestApi()).setControllerAdvice(new GlobalExceptionHandler()).build();
+		mockMvc = standaloneSetup(new TestApi()).setControllerAdvice(new GlobalExceptionHandlerTest()).build();
 	}
 
 	@Test

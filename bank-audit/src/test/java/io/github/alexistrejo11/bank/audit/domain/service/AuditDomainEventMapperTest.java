@@ -2,12 +2,13 @@ package io.github.alexistrejo11.bank.audit.domain.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.alexistrejo11.bank.shared.event.LoanApprovedEvent;
-import io.github.alexistrejo11.bank.shared.event.TransferCompletedEvent;
-import io.github.alexistrejo11.bank.shared.ids.AccountId;
-import io.github.alexistrejo11.bank.shared.ids.LoanId;
-import io.github.alexistrejo11.bank.shared.ids.TransferId;
-import io.github.alexistrejo11.bank.shared.ids.UserId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.AccountId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.LoanId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.TransferId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.UserId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanApprovedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferCompletedEvent;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -24,8 +25,7 @@ class AuditDomainEventMapperTest {
 				AccountId.random(),
 				AccountId.random(),
 				new BigDecimal("1.00"),
-				"USD"
-		);
+				"USD");
 		assertThat(AuditDomainEventMapper.eventType(event)).isEqualTo("TransferCompletedEvent");
 		var ref = AuditDomainEventMapper.entityRef(event);
 		assertThat(ref.entityType()).isEqualTo("Transfer");
@@ -44,8 +44,7 @@ class AuditDomainEventMapperTest {
 				new BigDecimal("100.00"),
 				"USD",
 				new BigDecimal("0.01"),
-				12
-		);
+				12);
 		assertThat(AuditDomainEventMapper.eventType(event)).isEqualTo("LoanApprovedEvent");
 		var ref = AuditDomainEventMapper.entityRef(event);
 		assertThat(ref.entityType()).isEqualTo("Loan");

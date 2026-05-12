@@ -2,7 +2,7 @@ package io.github.alexistrejo11.bank.infrastructure.ratelimit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitProfile;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ratelimit.RateLimitProfile;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -17,8 +17,7 @@ class RateLimitingPropertiesTest {
 					"bank.rate-limiting.global.capacity=100",
 					"bank.rate-limiting.global.refill-per-second=2.5",
 					"bank.rate-limiting.profiles.strict.capacity=5",
-					"bank.rate-limiting.profiles.strict.refill-per-second=0.05"
-			);
+					"bank.rate-limiting.profiles.strict.refill-per-second=0.05");
 
 	@Test
 	void binds_global_and_profile_overrides() {

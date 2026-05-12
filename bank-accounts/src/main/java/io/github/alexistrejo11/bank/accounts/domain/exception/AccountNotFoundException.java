@@ -1,6 +1,6 @@
 package io.github.alexistrejo11.bank.accounts.domain.exception;
 
-import io.github.alexistrejo11.bank.shared.exception.ResourceNotFoundException;
+import io.github.alexistrejo11.bank.shared.shared_kernel.exception.ResourceNotFoundException;
 
 public class AccountNotFoundException extends ResourceNotFoundException {
 

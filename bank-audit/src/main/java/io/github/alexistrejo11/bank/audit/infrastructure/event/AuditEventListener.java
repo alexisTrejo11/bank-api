@@ -5,11 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.github.alexistrejo11.bank.audit.application.handler.command.AppendAuditRecordHandler;
-import io.github.alexistrejo11.bank.audit.domain.command.AppendAuditRecordCommand;
+import io.github.alexistrejo11.bank.audit.application.command.AppendAuditRecordCommand;
 import io.github.alexistrejo11.bank.audit.domain.service.AuditDomainEventMapper;
 import io.github.alexistrejo11.bank.audit.domain.service.AuditDomainEventMapper.EntityRef;
-import io.github.alexistrejo11.bank.iam.infrastructure.security.IamUserPrincipal;
-import io.github.alexistrejo11.bank.shared.event.BankDomainEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.auth.IamUserPrincipal;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.BankDomainEvent;
+
 import com.github.f4b6a3.uuid.UuidCreator;
 import java.time.Instant;
 import java.util.UUID;
@@ -43,8 +44,7 @@ public class AuditEventListener {
 		String payload;
 		try {
 			payload = objectMapper.writeValueAsString(event);
-		}
-		catch (JsonProcessingException e) {
+		} catch (JsonProcessingException e) {
 			log.error("audit_serialize_failed eventType={} eventId={}", eventType, event.eventId(), e);
 			payload = "{\"error\":\"serialization_failed\",\"eventId\":\"" + event.eventId() + "\"}";
 		}
@@ -57,8 +57,7 @@ public class AuditEventListener {
 				actorId,
 				ref.entityType(),
 				ref.entityId(),
-				event.eventId()
-		);
+				event.eventId());
 		appendAuditRecordHandler.handle(new AppendAuditRecordCommand(
 				id,
 				eventType,
@@ -66,8 +65,7 @@ public class AuditEventListener {
 				ref.entityType(),
 				ref.entityId(),
 				payload,
-				createdAt
-		));
+				createdAt));
 	}
 
 	private static UUID currentActorId() {

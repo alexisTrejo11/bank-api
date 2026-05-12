@@ -1,0 +1,20 @@
+package io.github.alexistrejo11.bank.shared.shared_kernel.ids;
+
+import java.util.Objects;
+import java.util.UUID;
+
+/** Identifier for an account aggregate. */
+public record AccountId(UUID value) {
+
+	public AccountId {
+		Objects.requireNonNull(value, "value");
+	}
+
+	public static AccountId of(UUID id) {
+		return new AccountId(id);
+	}
+
+	public static AccountId random() {
+		return new AccountId(UUID.randomUUID());
+	}
+}

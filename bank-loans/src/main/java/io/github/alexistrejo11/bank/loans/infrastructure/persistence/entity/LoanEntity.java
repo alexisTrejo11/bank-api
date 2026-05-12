@@ -1,12 +1,12 @@
 package io.github.alexistrejo11.bank.loans.infrastructure.persistence.entity;
 
 import io.github.alexistrejo11.bank.loans.domain.model.LoanStatus;
+import io.github.alexistrejo11.bank.shared.shared_kernel.persistence.JpaEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
@@ -17,10 +17,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "loans")
-public class LoanEntity {
-
-	@Id
-	private UUID id;
+public class LoanEntity extends JpaEntity {
 
 	@Column(name = "user_id", nullable = false)
 	private UUID userId;
@@ -50,48 +47,106 @@ public class LoanEntity {
 	@Column(nullable = false, length = 32)
 	private LoanStatus status;
 
-	@Column(name = "created_at", nullable = false)
-	private Instant createdAt;
-
-	@Column(name = "updated_at", nullable = false)
-	private Instant updatedAt;
-
 	@OneToMany(mappedBy = "loan", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<LoanRepaymentEntity> repayments = new ArrayList<>();
 
 	protected LoanEntity() {
 	}
 
-	public LoanEntity(
-			UUID id,
-			UUID userId,
-			UUID checkingAccountId,
-			UUID loanAccountId,
-			BigDecimal principal,
-			String currency,
-			BigDecimal monthlyInterestRate,
-			int termMonths,
-			BigDecimal monthlyPayment,
-			LoanStatus status,
-			Instant createdAt,
-			Instant updatedAt
-	) {
-		this.id = id;
-		this.userId = userId;
-		this.checkingAccountId = checkingAccountId;
-		this.loanAccountId = loanAccountId;
-		this.principal = principal;
-		this.currency = currency;
-		this.monthlyInterestRate = monthlyInterestRate;
-		this.termMonths = termMonths;
-		this.monthlyPayment = monthlyPayment;
-		this.status = status;
-		this.createdAt = createdAt;
-		this.updatedAt = updatedAt;
+	public static Builder builder() {
+		return new Builder();
 	}
 
-	public UUID getId() {
-		return id;
+	public static final class Builder {
+		private UUID id;
+		private UUID userId;
+		private UUID checkingAccountId;
+		private UUID loanAccountId;
+		private BigDecimal principal;
+		private String currency;
+		private BigDecimal monthlyInterestRate;
+		private int termMonths;
+		private BigDecimal monthlyPayment;
+		private LoanStatus status;
+		private Instant createdAt;
+		private Instant updatedAt;
+
+		public Builder id(UUID id) {
+			this.id = id;
+			return this;
+		}
+
+		public Builder userId(UUID userId) {
+			this.userId = userId;
+			return this;
+		}
+
+		public Builder checkingAccountId(UUID checkingAccountId) {
+			this.checkingAccountId = checkingAccountId;
+			return this;
+		}
+
+		public Builder loanAccountId(UUID loanAccountId) {
+			this.loanAccountId = loanAccountId;
+			return this;
+		}
+
+		public Builder principal(BigDecimal principal) {
+			this.principal = principal;
+			return this;
+		}
+
+		public Builder currency(String currency) {
+			this.currency = currency;
+			return this;
+		}
+
+		public Builder monthlyInterestRate(BigDecimal monthlyInterestRate) {
+			this.monthlyInterestRate = monthlyInterestRate;
+			return this;
+		}
+
+		public Builder termMonths(int termMonths) {
+			this.termMonths = termMonths;
+			return this;
+		}
+
+		public Builder monthlyPayment(BigDecimal monthlyPayment) {
+			this.monthlyPayment = monthlyPayment;
+			return this;
+		}
+
+		public Builder status(LoanStatus status) {
+			this.status = status;
+			return this;
+		}
+
+		public Builder createdAt(Instant createdAt) {
+			this.createdAt = createdAt;
+			return this;
+		}
+
+		public Builder updatedAt(Instant updatedAt) {
+			this.updatedAt = updatedAt;
+			return this;
+		}
+
+		public LoanEntity build() {
+			LoanEntity e = new LoanEntity();
+			e.id = id;
+			e.userId = userId;
+			e.checkingAccountId = checkingAccountId;
+			e.loanAccountId = loanAccountId;
+			e.principal = principal;
+			e.currency = currency;
+			e.monthlyInterestRate = monthlyInterestRate;
+			e.termMonths = termMonths;
+			e.monthlyPayment = monthlyPayment;
+			e.status = status;
+			e.createdAt = createdAt;
+			e.updatedAt = updatedAt;
+			return e;
+		}
 	}
 
 	public UUID getUserId() {
@@ -136,18 +191,6 @@ public class LoanEntity {
 
 	public void setStatus(LoanStatus status) {
 		this.status = status;
-	}
-
-	public Instant getCreatedAt() {
-		return createdAt;
-	}
-
-	public Instant getUpdatedAt() {
-		return updatedAt;
-	}
-
-	public void setUpdatedAt(Instant updatedAt) {
-		this.updatedAt = updatedAt;
 	}
 
 	public List<LoanRepaymentEntity> getRepayments() {

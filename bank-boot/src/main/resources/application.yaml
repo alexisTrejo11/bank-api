@@ -1,10 +1,13 @@
 spring:
   application:
     name: bank
+  profiles:
+    default: postgres
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:bank;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH}
-    username: ${SPRING_DATASOURCE_USERNAME:sa}
-    password: ${SPRING_DATASOURCE_PASSWORD:}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/at_bank}
+    username: ${SPRING_DATASOURCE_USERNAME:bank}
+    password: ${SPRING_DATASOURCE_PASSWORD:change-me-local-only}
+    driver-class-name: org.postgresql.Driver
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}

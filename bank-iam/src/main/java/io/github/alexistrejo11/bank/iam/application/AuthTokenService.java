@@ -1,9 +1,10 @@
 package io.github.alexistrejo11.bank.iam.application;
 
-import io.github.alexistrejo11.bank.iam.api.dto.response.TokenResponse;
 import io.github.alexistrejo11.bank.iam.domain.model.User;
-import io.github.alexistrejo11.bank.iam.infrastructure.security.JwtTokenService;
-import io.github.alexistrejo11.bank.iam.infrastructure.security.RefreshTokenStore;
+import io.github.alexisTrejo11.bank.security.token.jwt.JwtTokenService;
+import io.github.alexisTrejo11.bank.security.token.RefreshTokenStore;
+import io.github.alexistrejo11.bank.iam.presentation.dto.response.TokenResponse;
+
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.HexFormat;
@@ -30,8 +31,7 @@ public class AuthTokenService {
 				user.email(),
 				user.roleNames(),
 				user.permissionNames(),
-				ACCESS_TTL
-		);
+				ACCESS_TTL);
 		String refresh = newRefreshToken();
 		refreshTokenStore.store(refresh, user.id(), REFRESH_TTL);
 		return new TokenResponse(access, refresh, "Bearer", ACCESS_TTL.toSeconds());

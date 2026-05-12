@@ -6,11 +6,12 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.f4b6a3.uuid.UuidCreator;
 import io.github.alexistrejo11.bank.audit.application.handler.command.AppendAuditRecordHandler;
-import io.github.alexistrejo11.bank.audit.domain.command.AppendAuditRecordCommand;
+import io.github.alexistrejo11.bank.audit.application.command.AppendAuditRecordCommand;
 import io.github.alexistrejo11.bank.audit.domain.service.AuditDomainEventMapper;
 import io.github.alexistrejo11.bank.audit.domain.service.AuditDomainEventMapper.EntityRef;
-import io.github.alexistrejo11.bank.shared.event.BankDomainEvent;
-import io.github.alexistrejo11.bank.shared.messaging.BankKafkaTopics;
+import io.github.alexistrejo11.bank.shared.shared_kernel.messaging.BankKafkaTopics;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.BankDomainEvent;
+
 import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -20,7 +21,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Append-only audit from Kafka (no SecurityContext; actorId is null for automated pipeline).
+ * Append-only audit from Kafka (no SecurityContext; actorId is null for
+ * automated pipeline).
  */
 @Component
 @ConditionalOnProperty(prefix = "bank.kafka", name = "enabled", havingValue = "true")
@@ -38,19 +40,15 @@ public class AuditKafkaConsumer {
 		this.appendAuditRecordHandler = appendAuditRecordHandler;
 	}
 
-	@KafkaListener(
-			topics = { BankKafkaTopics.TRANSFERS, BankKafkaTopics.LOANS },
-			groupId = "audit-cg",
-			containerFactory = "bankDomainEventKafkaListenerContainerFactory"
-	)
+	@KafkaListener(topics = { BankKafkaTopics.TRANSFERS,
+			BankKafkaTopics.LOANS }, groupId = "audit-cg", containerFactory = "bankDomainEventKafkaListenerContainerFactory")
 	public void onEvent(BankDomainEvent event) {
 		EntityRef ref = AuditDomainEventMapper.entityRef(event);
 		String eventType = AuditDomainEventMapper.eventType(event);
 		String payload;
 		try {
 			payload = objectMapper.writeValueAsString(event);
-		}
-		catch (JsonProcessingException e) {
+		} catch (JsonProcessingException e) {
 			log.error("audit_kafka_serialize_failed eventType={} eventId={}", eventType, event.eventId(), e);
 			payload = "{\"error\":\"serialization_failed\",\"eventId\":\"" + event.eventId() + "\"}";
 		}
@@ -61,8 +59,7 @@ public class AuditKafkaConsumer {
 				eventType,
 				ref.entityType(),
 				ref.entityId(),
-				event.eventId()
-		);
+				event.eventId());
 		appendAuditRecordHandler.handle(new AppendAuditRecordCommand(
 				id,
 				eventType,
@@ -70,7 +67,6 @@ public class AuditKafkaConsumer {
 				ref.entityType(),
 				ref.entityId(),
 				payload,
-				createdAt
-		));
+				createdAt));
 	}
 }

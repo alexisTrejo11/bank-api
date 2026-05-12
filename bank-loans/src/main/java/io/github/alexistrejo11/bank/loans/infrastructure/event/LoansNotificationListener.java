@@ -1,16 +1,18 @@
 package io.github.alexistrejo11.bank.loans.infrastructure.event;
 
-import io.github.alexistrejo11.bank.shared.event.LoanApprovedEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanDisbursedEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanPaidOffEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanRepaymentCompletedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanApprovedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanDisbursedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanPaidOffEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanRepaymentCompletedEvent;
+
 /**
- * Stub until a notifications module exists: logs loan lifecycle for ops visibility.
+ * Stub until a notifications module exists: logs loan lifecycle for ops
+ * visibility.
  */
 @Component
 public class LoansNotificationListener {

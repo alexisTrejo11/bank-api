@@ -1,6 +1,6 @@
 package io.github.alexistrejo11.bank.infrastructure.ratelimit;
 
-import io.github.alexistrejo11.bank.shared.ratelimit.RateLimitProfile;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ratelimit.RateLimitProfile;
 import java.util.EnumMap;
 import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -11,7 +11,8 @@ public class RateLimitingProperties {
 	private boolean enabled = false;
 
 	/**
-	 * When true, Redis errors do not block traffic (availability over strict limiting).
+	 * When true, Redis errors do not block traffic (availability over strict
+	 * limiting).
 	 */
 	private boolean failOpen = true;
 

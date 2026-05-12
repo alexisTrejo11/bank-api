@@ -1,15 +1,16 @@
 package io.github.alexistrejo11.bank.infrastructure.messaging.kafka;
 
-import io.github.alexistrejo11.bank.shared.event.BankDomainEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanApprovedEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanDisbursedEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanPaidOffEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanRepaymentCompletedEvent;
-import io.github.alexistrejo11.bank.shared.event.TransferCompletedEvent;
-import io.github.alexistrejo11.bank.shared.event.TransferFailedEvent;
-import io.github.alexistrejo11.bank.shared.event.TransferReversedEvent;
-import io.github.alexistrejo11.bank.shared.messaging.BankKafkaTopics;
-import io.github.alexistrejo11.bank.shared.messaging.DomainEventPublisher;
+import io.github.alexistrejo11.bank.shared.shared_kernel.messaging.BankKafkaTopics;
+import io.github.alexistrejo11.bank.shared.shared_kernel.messaging.DomainEventPublisher;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.BankDomainEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanApprovedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanDisbursedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanPaidOffEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanRepaymentCompletedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferCompletedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferFailedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferReversedEvent;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -17,8 +18,10 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * Publishes domain events to Kafka after commit. Fan-out to {@link BankKafkaTopics#NOTIFICATIONS} for
- * the same event types that previously fed {@code @EventListener} notification handlers.
+ * Publishes domain events to Kafka after commit. Fan-out to
+ * {@link BankKafkaTopics#NOTIFICATIONS} for
+ * the same event types that previously fed {@code @EventListener} notification
+ * handlers.
  */
 public class KafkaDomainEventPublisher implements DomainEventPublisher {
 
@@ -37,7 +40,8 @@ public class KafkaDomainEventPublisher implements DomainEventPublisher {
 			String domainKey = domainPartitionKey(event);
 			kafkaTemplate.send(domainTopic, domainKey, event).whenComplete((r, ex) -> {
 				if (ex != null) {
-					log.error("kafka_send_failed topic={} key={} eventType={}", domainTopic, domainKey, event.getClass().getSimpleName(), ex);
+					log.error("kafka_send_failed topic={} key={} eventType={}", domainTopic, domainKey,
+							event.getClass().getSimpleName(), ex);
 				}
 			});
 			if (fanOutToNotifications(event)) {
@@ -56,14 +60,14 @@ public class KafkaDomainEventPublisher implements DomainEventPublisher {
 					send.run();
 				}
 			});
-		}
-		else {
+		} else {
 			send.run();
 		}
 	}
 
 	private static String domainTopic(BankDomainEvent event) {
-		if (event instanceof TransferCompletedEvent || event instanceof TransferFailedEvent || event instanceof TransferReversedEvent) {
+		if (event instanceof TransferCompletedEvent || event instanceof TransferFailedEvent
+				|| event instanceof TransferReversedEvent) {
 			return BankKafkaTopics.TRANSFERS;
 		}
 		if (event instanceof LoanApprovedEvent

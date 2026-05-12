@@ -1,19 +1,18 @@
 package io.github.alexistrejo11.bank.loans.application.handler.command;
 
-import io.github.alexistrejo11.bank.loans.api.dto.response.LoanDetailResponse;
-import io.github.alexistrejo11.bank.loans.api.mapper.LoanApiMapper;
-import io.github.alexistrejo11.bank.loans.domain.command.OriginateLoanCommand;
+import io.github.alexistrejo11.bank.loans.application.command.OriginateLoanCommand;
 import io.github.alexistrejo11.bank.loans.domain.exception.LoanException;
 import io.github.alexistrejo11.bank.loans.domain.model.LoanAggregate;
 import io.github.alexistrejo11.bank.loans.domain.model.LoanRepaymentLine;
 import io.github.alexistrejo11.bank.loans.domain.model.LoanStatus;
 import io.github.alexistrejo11.bank.loans.domain.model.RepaymentStatus;
-import io.github.alexistrejo11.bank.loans.domain.port.out.CustomerCheckingAccountPort;
-import io.github.alexistrejo11.bank.loans.domain.port.out.LoanRepository;
+import io.github.alexistrejo11.bank.loans.domain.repository.CustomerCheckingAccountRepository;
+import io.github.alexistrejo11.bank.loans.domain.repository.LoanRepository;
 import io.github.alexistrejo11.bank.loans.domain.service.AmortizationCalculator;
 import io.github.alexistrejo11.bank.loans.domain.service.AmortizationCalculator.InstallmentDraft;
-import io.github.alexistrejo11.bank.shared.exception.ResourceNotFoundException;
-import io.github.alexistrejo11.bank.shared.ids.UserId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.UserId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.exception.ResourceNotFoundException;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -28,18 +27,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class OriginateLoanHandler {
 
 	private final LoanRepository loanRepository;
-	private final CustomerCheckingAccountPort checkingAccountPort;
+	private final CustomerCheckingAccountRepository checkingAccountPort;
 
-	public OriginateLoanHandler(LoanRepository loanRepository, CustomerCheckingAccountPort checkingAccountPort) {
+	public OriginateLoanHandler(LoanRepository loanRepository, CustomerCheckingAccountRepository checkingAccountPort) {
 		this.loanRepository = loanRepository;
 		this.checkingAccountPort = checkingAccountPort;
 	}
 
 	@Transactional
-	public LoanDetailResponse handle(UserId userId, OriginateLoanCommand command) {
+	public LoanAggregate handle(UserId userId, OriginateLoanCommand command) {
 		String ccy = command.currency().trim().toUpperCase();
 		var checking = checkingAccountPort.findOwnedChecking(userId, command.checkingAccountId())
-				.orElseThrow(() -> new ResourceNotFoundException("LOAN_CHECKING_NOT_FOUND", "Checking account not found or not eligible"));
+				.orElseThrow(() -> new ResourceNotFoundException("LOAN_CHECKING_NOT_FOUND",
+						"Checking account not found or not eligible"));
 		if (!checking.currencyCode().equalsIgnoreCase(ccy)) {
 			throw new LoanException("LOAN_CURRENCY_MISMATCH", "Loan currency must match checking account currency");
 		}
@@ -60,8 +60,7 @@ public class OriginateLoanHandler {
 					row.dueDate(),
 					row.amount(),
 					RepaymentStatus.PENDING,
-					null
-			));
+					null));
 		}
 		LoanAggregate loan = new LoanAggregate(
 				loanId,
@@ -76,9 +75,8 @@ public class OriginateLoanHandler {
 				LoanStatus.PENDING_APPROVAL,
 				now,
 				now,
-				repayments
-		);
+				repayments);
 		loanRepository.insert(loan);
-		return LoanApiMapper.toDetail(loan);
+		return loan;
 	}
 }

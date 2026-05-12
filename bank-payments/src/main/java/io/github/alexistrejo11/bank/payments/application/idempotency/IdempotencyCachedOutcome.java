@@ -1,16 +1,15 @@
 package io.github.alexistrejo11.bank.payments.application.idempotency;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.github.alexistrejo11.bank.payments.api.dto.response.TransferResponse;
-import io.github.alexistrejo11.bank.shared.result.Result;
+import io.github.alexistrejo11.bank.payments.presentation.dto.response.TransferResponse;
+import io.github.alexistrejo11.bank.shared.shared_kernel.result.Result;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record IdempotencyCachedOutcome(
 		boolean success,
 		TransferResponse transfer,
 		String failureCode,
-		String failureMessage
-) {
+		String failureMessage) {
 
 	public Result<TransferResponse> toResult() {
 		if (success) {

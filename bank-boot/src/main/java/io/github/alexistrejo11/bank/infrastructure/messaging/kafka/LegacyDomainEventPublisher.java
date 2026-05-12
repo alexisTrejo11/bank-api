@@ -1,14 +1,17 @@
 package io.github.alexistrejo11.bank.infrastructure.messaging.kafka;
 
-import io.github.alexistrejo11.bank.shared.event.BankDomainEvent;
-import io.github.alexistrejo11.bank.shared.messaging.DomainEventPublisher;
+import io.github.alexistrejo11.bank.shared.shared_kernel.messaging.DomainEventPublisher;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.BankDomainEvent;
+
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
- * When Kafka is off, publishes {@link BankDomainEvent} on the Spring application event bus after commit
- * (same behaviour as direct {@link ApplicationEventPublisher#publishEvent} with transactional listeners).
+ * When Kafka is off, publishes {@link BankDomainEvent} on the Spring
+ * application event bus after commit
+ * (same behaviour as direct {@link ApplicationEventPublisher#publishEvent} with
+ * transactional listeners).
  */
 public class LegacyDomainEventPublisher implements DomainEventPublisher {
 
@@ -27,8 +30,7 @@ public class LegacyDomainEventPublisher implements DomainEventPublisher {
 					applicationEventPublisher.publishEvent(event);
 				}
 			});
-		}
-		else {
+		} else {
 			applicationEventPublisher.publishEvent(event);
 		}
 	}

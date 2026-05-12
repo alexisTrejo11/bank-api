@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.alexistrejo11.bank.shared.shared_kernel.api.ApiResponse;
+
 class ApiResponseTest {
 
 	@Test

@@ -1,11 +1,12 @@
 package io.github.alexistrejo11.bank.iam.application.handler.command;
 
-import io.github.alexistrejo11.bank.iam.infrastructure.security.JwtBlocklistStore;
-import io.github.alexistrejo11.bank.iam.infrastructure.security.JwtTokenService;
-import io.github.alexistrejo11.bank.iam.infrastructure.security.ParsedAccessToken;
 import java.time.Duration;
 import java.time.Instant;
 import org.springframework.stereotype.Component;
+
+import io.github.alexisTrejo11.bank.security.token.jwt.JwtBlocklistStore;
+import io.github.alexisTrejo11.bank.security.token.jwt.JwtTokenService;
+import io.github.alexisTrejo11.bank.security.token.ParsedAccessToken;
 
 @Component
 public class LogoutHandler {

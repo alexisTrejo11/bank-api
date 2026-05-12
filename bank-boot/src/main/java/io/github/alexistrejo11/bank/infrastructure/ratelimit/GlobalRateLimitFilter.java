@@ -9,7 +9,8 @@ import org.springframework.lang.NonNull;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Infrastructure-wide protection for {@code /api/**}: per-IP token bucket stricter than typical SaaS defaults.
+ * Infrastructure-wide protection for {@code /api/**}: per-IP token bucket
+ * stricter than typical SaaS defaults.
  */
 public final class GlobalRateLimitFilter extends OncePerRequestFilter {
 
@@ -38,8 +39,7 @@ public final class GlobalRateLimitFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(
 			@NonNull HttpServletRequest request,
 			@NonNull HttpServletResponse response,
-			@NonNull FilterChain filterChain
-	) throws ServletException, IOException {
+			@NonNull FilterChain filterChain) throws ServletException, IOException {
 		String ip = ClientIpResolver.resolve(request);
 		String key = PREFIX + ip;
 		var g = properties.getGlobal();
@@ -49,8 +49,7 @@ public final class GlobalRateLimitFilter extends OncePerRequestFilter {
 					response,
 					d.retryAfterSeconds(),
 					(long) g.getCapacity(),
-					0L
-			);
+					0L);
 			return;
 		}
 		response.setHeader("X-RateLimit-Limit", Long.toString(g.getCapacity()));

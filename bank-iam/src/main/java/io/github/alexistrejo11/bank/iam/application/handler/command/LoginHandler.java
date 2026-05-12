@@ -1,12 +1,13 @@
 package io.github.alexistrejo11.bank.iam.application.handler.command;
 
-import io.github.alexistrejo11.bank.iam.api.dto.request.LoginRequest;
-import io.github.alexistrejo11.bank.iam.api.dto.response.TokenResponse;
 import io.github.alexistrejo11.bank.iam.application.AuthTokenService;
+import io.github.alexistrejo11.bank.iam.domain.exception.InvalidCredentialsException;
 import io.github.alexistrejo11.bank.iam.domain.model.User;
 import io.github.alexistrejo11.bank.iam.domain.model.UserStatus;
-import io.github.alexistrejo11.bank.iam.domain.port.out.UserRepository;
-import io.github.alexistrejo11.bank.iam.exception.InvalidCredentialsException;
+import io.github.alexistrejo11.bank.iam.domain.repository.UserRepository;
+import io.github.alexistrejo11.bank.iam.presentation.dto.request.LoginRequest;
+import io.github.alexistrejo11.bank.iam.presentation.dto.response.TokenResponse;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,8 +22,7 @@ public class LoginHandler {
 	public LoginHandler(
 			UserRepository userRepository,
 			PasswordEncoder passwordEncoder,
-			AuthTokenService authTokenService
-	) {
+			AuthTokenService authTokenService) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.authTokenService = authTokenService;

@@ -1,7 +1,7 @@
 package io.github.alexistrejo11.bank.notifications.infrastructure.messaging;
 
 import io.github.alexistrejo11.bank.notifications.application.handler.command.DispatchNotificationHandler;
-import io.github.alexistrejo11.bank.notifications.domain.command.DispatchNotificationCommand;
+import io.github.alexistrejo11.bank.notifications.application.command.DispatchNotificationCommand;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 

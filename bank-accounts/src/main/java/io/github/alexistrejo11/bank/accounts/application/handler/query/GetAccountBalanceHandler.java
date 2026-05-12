@@ -2,10 +2,10 @@ package io.github.alexistrejo11.bank.accounts.application.handler.query;
 
 import io.github.alexistrejo11.bank.accounts.domain.exception.AccountNotFoundException;
 import io.github.alexistrejo11.bank.accounts.domain.model.AccountBalance;
-import io.github.alexistrejo11.bank.accounts.domain.model.AccountSummary;
-import io.github.alexistrejo11.bank.accounts.domain.port.out.AccountRepository;
-import io.github.alexistrejo11.bank.accounts.domain.port.out.LedgerEntryRepository;
-import io.github.alexistrejo11.bank.accounts.domain.query.GetAccountBalanceQuery;
+import io.github.alexistrejo11.bank.accounts.domain.model.BankAccount;
+import io.github.alexistrejo11.bank.accounts.domain.repository.AccountRepository;
+import io.github.alexistrejo11.bank.accounts.domain.repository.LedgerEntryRepository;
+import io.github.alexistrejo11.bank.accounts.application.query.GetAccountBalanceQuery;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +22,7 @@ public class GetAccountBalanceHandler {
 
 	@Transactional(readOnly = true)
 	public AccountBalance handle(GetAccountBalanceQuery query) {
-		AccountSummary acc = accountRepository.findByIdAndUserId(query.accountId(), query.ownerId().value())
+		BankAccount acc = accountRepository.findByIdAndUserId(query.accountId(), query.ownerId().value())
 				.orElseThrow(() -> new AccountNotFoundException("Account not found"));
 		return new AccountBalance(ledgerEntryRepository.sumBalance(query.accountId()), acc.currency());
 	}

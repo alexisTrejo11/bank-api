@@ -1,7 +1,8 @@
 package io.github.alexistrejo11.bank.infrastructure.messaging.kafka;
 
-import io.github.alexistrejo11.bank.shared.event.BankDomainEvent;
-import io.github.alexistrejo11.bank.shared.messaging.DomainEventPublisher;
+import io.github.alexistrejo11.bank.shared.shared_kernel.messaging.DomainEventPublisher;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.BankDomainEvent;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;

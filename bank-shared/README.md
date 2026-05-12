@@ -1,6 +1,6 @@
 # bank-shared
 
-Reusable kernel for the Bank API monolith: value objects, `Result`, exceptions, domain event base type, HTTP envelope, and global RFC 7807 error handling (`io.github.alexistrejo11.bank.shared`).
+Reusable kernel for the Bank API monolith: value objects, `Result`, exceptions, domain event base type, HTTP envelope, and global RFC 7807 error handling (`io.github.alexistrejo11.bank.shared.shared_kernel`).
 
 Other domain modules (IAM, accounts, …) should depend on **`bank-shared` only** for these types—not on `bank-boot`.
 

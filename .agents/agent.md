@@ -1,6 +1,7 @@
 # AGENT.md — Bank System
 
 ## Project identity
+
 - **Artifact:** `io.github.alexistrejo11.bank`
 - **Language:** Java 25 (use virtual threads, records, sealed classes where appropriate)
 - **Framework:** Spring Boot 4.x (Spring MVC, Spring Security 6, Spring Data JPA)
@@ -9,12 +10,14 @@
 - **Deployment:** Docker Compose (local); AWS-ready structure
 
 ## Context files — read these before touching any module
+
 - **Architecture decisions & module map** → `.agents/architecture.md`
 - **Coding conventions & patterns** → `.agents/conventions.md`
 - **Domain model & business rules** → `.agents/domains.md`
 - **Planned infra / v0.2.0** → `docs/v0.2.0/ROADMAP.md` and `docs/v0.2.0/TRACKER.md`
 
 ## Build commands
+
 ```bash
 ./mvnw clean verify                    # full build + tests (from repo root)
 ./mvnw test                            # unit tests only
@@ -24,18 +27,20 @@ docker compose up -d postgres redis kafka   # infra for v0.2.0 (see README + doc
 ```
 
 ## Module list
-| Submodule | Root package | Purpose |
-|---|---|---|
-| `bank-iam` | `io.github.alexistrejo11.bank.iam` | Auth, users, roles, permissions |
-| `bank-accounts` | `io.github.alexistrejo11.bank.accounts` | Accounts, balances, double-entry ledger |
-| `bank-payments` | `io.github.alexistrejo11.bank.payments` | Transfers, idempotency, state machine |
-| `bank-loans` | `io.github.alexistrejo11.bank.loans` | Origination, schedule, repayment |
-| `bank-notifications` | `io.github.alexistrejo11.bank.notifications` | Email/push dispatch |
-| `bank-audit` | `io.github.alexistrejo11.bank.audit` | Immutable compliance event log |
-| `bank-shared` | `io.github.alexistrejo11.bank.shared` | Value objects, events, Result<T>, exceptions |
-| `bank-boot` | `io.github.alexistrejo11.bank` | Spring Boot assembly / integration adapters |
+
+| Submodule            | Root package                                        | Purpose                                      |
+| -------------------- | --------------------------------------------------- | -------------------------------------------- |
+| `bank-iam`           | `io.github.alexistrejo11.bank.iam`                  | Auth, users, roles, permissions              |
+| `bank-accounts`      | `io.github.alexistrejo11.bank.accounts`             | Accounts, balances, double-entry ledger      |
+| `bank-payments`      | `io.github.alexistrejo11.bank.payments`             | Transfers, idempotency, state machine        |
+| `bank-loans`         | `io.github.alexistrejo11.bank.loans`                | Origination, schedule, repayment             |
+| `bank-notifications` | `io.github.alexistrejo11.bank.notifications`        | Email/push dispatch                          |
+| `bank-audit`         | `io.github.alexistrejo11.bank.audit`                | Immutable compliance event log               |
+| `bank-shared`        | `io.github.alexistrejo11.bank.shared.shared_kernel` | Value objects, events, Result<T>, exceptions |
+| `bank-boot`          | `io.github.alexistrejo11.bank`                      | Spring Boot assembly / integration adapters  |
 
 ## Non-negotiable rules (apply everywhere)
+
 1. **No cross-module Spring bean injection.** Modules communicate only via `shared` value objects and `ApplicationEvent`s.
 2. **Domain layer has zero Spring annotations.** Entities, aggregates, and domain services are plain Java.
 3. **Every balance mutation goes through the ledger.** Never update a balance column directly.

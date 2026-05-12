@@ -1,176 +1,86 @@
-# Infrastructure Model
+# Infrastructure model
 
-## 1. Deployment Layers (`DeploymentLayer[]`)
+Human-readable infrastructure documentation derived from [`source/ProjectInfrastructure.md`](source/ProjectInfrastructure.md). See also [ProjectArchitectureModel.md](ProjectArchitectureModel.md) for where this stack sits in the logical architecture.
 
-### Layer 1: Development Local
+## Infra metrics (quick reference)
 
-- **Name**: "Development Local"
-- **Color**: "#4CAF50"
-- **Components** (`DeploymentComponent[]`):
-  - **Component 1**: "H2 In-Memory Database"
-    - **Icon**: "🗄️"
-    - **Description**: "H2 in PostgreSQL compatibility mode for local development without external dependencies"
-  - **Component 2**: "Java 21 (Spring Boot)"
-    - **Icon**: "☕"
-    - **Description**: "Application running locally via Maven wrapper"
+| Metric | Value | Detail |
+|--------|--------|--------|
+| Docker Compose services | **11** | zookeeper, kafka, postgres, redis, elasticsearch, logstash, kibana, prometheus, grafana, app, nginx |
+| Container healthcheck | **1×** `GET /actuator/health` | Dockerfile `HEALTHCHECK` — map to ECS / ALB target group health checks |
+| Spring profiles | **4+** | default, test, postgres, docker; add `aws` per account when needed |
+| Hikari max pool (default) | **10** | Override via Spring datasource properties |
+| Nginx `/api/` rate | **30 r/s** | `limit_req_zone` + burst in `infra/nginx/nginx.conf` |
+| Global Redis bucket (when enabled) | **64 @ 1/s** | `bank.rate-limiting.global` defaults |
+| STRICT profile | **12 @ 0.2/s** | Auth routes |
+| SENSITIVE_OPERATIONS | **6 @ 0.1/s** | Loan writes |
 
----
+## AWS cloud services (target production)
 
-### Layer 2: Docker Compose (Local Production Simulation)
+| Service | Purpose | Cost note (illustrative) |
+|---------|---------|---------------------------|
+| **Amazon ECS (Fargate)** | Run `bank-boot` tasks; autoscaling on CPU/memory; private subnets | Fargate vCPU/GB-hour × task count |
+| **Application Load Balancer** | TLS (ACM), health checks to `/actuator/health`, stateless API | LCU-hours + bytes |
+| **Amazon RDS (PostgreSQL)** | System of record | Instance + storage; Multi-AZ multiplier |
+| **Amazon ElastiCache (Redis)** | Idempotency, refresh/revocation metadata, rate limits | Node type × replicas |
+| **Amazon MSK** | Kafka-compatible streaming for notifications / future extraction | Broker hours + storage + egress |
+| **AWS Secrets Manager** | JWT keys, DB passwords, third-party secrets | Per-secret monthly + API |
+| **Amazon CloudWatch** | Logs, metrics, alarms | Ingestion + storage + alarms |
+| **Amazon S3** | Static assets, exports, optional log archive | GB-month + requests |
+| **AWS WAF (optional)** | OWASP CRS, rate-based rules on ALB | Web ACL + rules + requests |
 
-- **Name**: "Docker Compose Stack"
-- **Color**: "#2196F3"
-- **Components** (`DeploymentComponent[]`):
-  - **Component 1**: "PostgreSQL"
-    - **Icon**: "🐘"
-    - **Description**: "Primary database, v16-alpine, port 5432"
-  - **Component 2**: "Redis"
-    - **Icon**: "💾"
-    - **Description**: "Session cache, rate limiting, idempotency, v7-alpine, port 6379"
-  - **Component 3**: "Redpanda (Kafka)"
-    - **Icon**: "📨"
-    - **Description**: "Kafka-compatible message broker, port 19092"
-  - **Component 4**: "Prometheus"
-    - **Icon**: "📊"
-    - **Description**: "Metrics collection, port 9090"
-  - **Component 5**: "Grafana"
-    - **Icon**: "📈"
-    - **Description**: "Dashboards, port 3000"
-  - **Component 6**: "Elasticsearch"
-    - **Icon**: "🔍"
-    - **Description**: "Log storage, port 9200 (future)"
-  - **Component 7**: "Kibana"
-    - **Icon**: "🔎"
-    - **Description**: "Log exploration, port 5601 (future)"
+## Deployment layers
 
----
+### 1. Local developer
 
-### Layer 3: Cloud (Future/AWS)
+| Component | Description |
+|-----------|-------------|
+| **H2 or local PostgreSQL** | Fast feedback; H2 for zero-deps; `postgres` profile for schema parity |
+| **Maven wrapper** | `./mvnw -pl bank-boot spring-boot:run` from repo root |
+| **Optional Redis** | Full auth, idempotency, and rate limiting behavior |
 
-- **Name**: "Cloud Deployment (Future)"
-- **Color**: "#FF9800"
-- **Components** (`DeploymentComponent[]`):
-  - **Component 1**: "AWS RDS PostgreSQL"
-    - **Icon**: "☁️"
-    - **Description**: "Managed PostgreSQL, production-grade"
-  - **Component 2**: "AWS ElastiCache Redis"
-    - **Icon**: "☁️"
-    - **Description**: "Managed Redis, production-grade"
-  - **Component 3**: "AWS MSK (Kafka)"
-    - **Icon**: "☁️"
-    - **Description**: "Managed Kafka, production-grade"
-  - **Component 4**: "AWS API Gateway"
-    - **Icon**: "🚪"
-    - **Description**: "Entry point, rate limiting, auth"
-  - **Component 5**: "AWS CloudWatch"
-    - **Icon**: "📊"
-    - **Description**: "Monitoring and logging"
-  - **Component 6**: "AWS OpenSearch"
-    - **Icon**: "🔍"
-    - **Description**: "Log analysis (replaces ELK)"
+### 2. Docker Compose (parity / demo host)
 
----
+| Component | Description |
+|-----------|-------------|
+| **PostgreSQL 16** | Primary DB; credentials from `.env`; health-checked |
+| **Redis 7** | Sessions coordination, idempotency, rate limits when enabled |
+| **ZooKeeper + Kafka 7.5** | Confluent images; broker `kafka:9092` on internal network |
+| **nginx 1.25** | Reverse proxy **port 80 → `app:8080`**; `30 r/s` zone on `/api/` |
+| **Prometheus + Grafana** | Metrics; dashboards under `infra/grafana/provisioning` |
+| **Elasticsearch + Logstash + Kibana** | ELK 8.x; Logstash mounts `infra/logstash/pipeline` |
 
-## 2. Docker Files (`DockerFile[]`)
+### 3. AWS production (target)
 
-### Service 1: app (Spring Boot Application)
+| Component | Description |
+|-----------|-------------|
+| **ECS Fargate service** | Same image as local Docker build; env from task definition + Secrets Manager |
+| **ALB + ACM** | Public HTTPS; preserve `X-Forwarded-*` — Spring forwarded-header strategy must remain correct |
+| **RDS PostgreSQL Multi-AZ** | Automated backups; parameter groups aligned with JPA batch usage |
+| **ElastiCache Redis** | Replication group with failover for shared coordination state |
+| **MSK** | Private auth (SASL/IAM); security groups only from ECS tasks |
+| **CloudWatch + optional OpenSearch** | Central observability; OpenSearch if you need ELK-like search in AWS |
 
-- **Service**: "app"
-- **Description**: "Bank API modular monolith application"
-- **Content**:
-  ```dockerfile
-  # Multi-stage build for the Bank API application
-  # [PLACEHOLDER: Add Dockerfile content when created]
-  ```
+## Dockerfile reference (`bank-api` multi-stage)
 
----
+The canonical file is **[Dockerfile](../../Dockerfile)** at the repository root. Summary:
 
-## 3. Cloud Services (`CloudService[]`)
+- **Builder:** `eclipse-temurin:21-jdk-alpine`, copies `mvnw` and module `pom.xml` files for dependency prefetch, then full `COPY . .`, then `./mvnw -pl bank-boot -am package -DskipTests`.  
+- **Runtime:** `eclipse-temurin:21-jre-alpine`, non-root user `bank`, `JAVA_OPTS` defaults to **ZGC**, exposes **8080**, **HEALTHCHECK** curls `/actuator/health`.  
+- **Build command:** `docker build -t bank-api:local .` from repo root.
 
-For each service:
+> **Note:** The prefetch layer does not copy **`bank-config/pom.xml`** today; `dependency:go-offline` may be partial until `COPY . .`. If CI fails, add `COPY bank-config/pom.xml bank-config/` to the prefetch list.
 
-- **Name**: "PostgreSQL (RDS)"
-- **Purpose**: "Primary database for all modules"
-- **Icon**: "🐘"
-- **Cost**: "<!-- [PLACEHOLDER: Add estimated cost] -->"
+## Operational warnings
 
-- **Name**: "ElastiCache (Redis)"
-- **Purpose**: "Token storage, rate limiting, idempotency cache"
-- **Icon**: "💾"
-- **Cost**: "<!-- [PLACEHOLDER: Add estimated cost] -->"
+- **TLS:** Compose nginx is **HTTP only** on port **80**. Production on AWS must use **ALB + ACM** (or CloudFront).  
+- **Grafana defaults:** Rotate weak admin passwords before exposing Grafana on any shared host.  
+- **Network:** The `app` container **exposes** 8080 to the Compose network but does not publish it on the host — **nginx** is the API entry point (plus published tool ports such as 9090, 3000, 5601).  
+- **Kafka flag:** `BANK_KAFKA_ENABLED` defaults toward **false** in compose; some flows stay in-process — confirm `application-docker.yaml` when documenting MSK cutover.  
+- **Prometheus:** Static scrape targets may list a single `app:8080`; on ECS use **service discovery** or an agent sidecar pattern.
 
-- **Name**: "MSK (Kafka)"
-- **Purpose**: "Event streaming for notifications"
-- **Icon**: "📨"
-- **Cost**: "<!-- [PLACEHOLDER: Add estimated cost] -->"
+## Related documentation
 
-- **Name**: "API Gateway"
-- **Purpose**: "Entry point, auth, rate limiting"
-- **Icon**: "🚪"
-- **Cost**: "<!-- [PLACEHOLDER: Add estimated cost] -->"
-
-- **Name**: "CloudWatch"
-- **Purpose**: "Metrics and logging"
-- **Icon**: "📊"
-- **Cost**: "<!-- [PLACEHOLDER: Add estimated cost] -->"
-
-- **Name**: "OpenSearch"
-- **Purpose**: "Log analysis and search"
-- **Icon**: "🔍"
-- **Cost**: "<!-- [PLACEHOLDER: Add estimated cost] -->"
-
-- **Name**: "S3"
-- **Purpose**: "Static assets, reports storage"
-- **Icon**: "📦"
-- **Cost**: "<!-- [PLACEHOLDER: Add estimated cost] -->"
-
-- **Name**: "Lambda (Future)"
-- **Purpose**: "Serverless functions for specific tasks"
-- **Icon**: "λ"
-- **Cost**: "<!-- [PLACEHOLDER: Add estimated cost] -->"
-
----
-
-## 4. Metrics (`InfrastructureMetric[]`)
-
-For each metric:
-
-- **Label**: "Docker Services"
-- **Value**: "7"
-- **Icon**: "🐳"
-- **Description**: "Services in docker-compose.yml (postgres, redis, kafka, prometheus, grafana, elasticsearch, kibana)"
-
-- **Label**: "Health Checks"
-- **Value**: "3"
-- **Icon**: "❤️"
-- **Description**: "Liveness, readiness, and db health endpoints"
-
-- **Label**: "Profiles"
-- **Value**: "4"
-- **Icon**: "⚙️"
-- **Description**: "Active profiles: default (H2), test, postgres, docker"
-
-- **Label**: "Database Connections"
-- **Value**: "10 (default HikariCP)"
-- **Icon**: "🔗"
-- **Description**: "HikariCP connection pool size"
-
-- **Label**: "Redis Expiry (JWT)"
-- **Value**: "7 days"
-- **Icon**: "⏰"
-- **Description**: "Refresh token TTL in Redis"
-
-- **Label**: "JWT Expiry"
-- **Value**: "15 minutes"
-- **Icon**: "🔐"
-- **Description**: "Access token lifetime"
-
-- **Label**: "Rate Limit (Global)"
-- **Value**: "64 req/sec"
-- **Icon**: "🚦"
-- **Description**: "Global per-IP rate limit"
-
-- **Label**: "Rate Limit (Strict)"
-- **Value**: "12 req/min"
-- **Icon**: "🚦"
-- **Description**: "Per-user strict profile limit"
+- [Project metadata](ProjectMetadata.md) — stack list  
+- [API schema](APISchema.md) — public vs internal routes  
+- [Project metric](ProjectMetric.md) — merged metric tables  

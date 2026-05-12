@@ -2,22 +2,18 @@ package io.github.alexistrejo11.bank.notifications.infrastructure.persistence.en
 
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationChannel;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationStatus;
+import io.github.alexistrejo11.bank.shared.shared_kernel.persistence.JpaEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "notifications")
-public class NotificationEntity {
-
-	@Id
-	private UUID id;
+public class NotificationEntity extends JpaEntity {
 
 	@Column(name = "user_id")
 	private UUID userId;
@@ -39,25 +35,17 @@ public class NotificationEntity {
 	@Column(length = 512)
 	private String subject;
 
-	@Lob
-	@Column(name = "body_html")
+	@Column(name = "body_html", columnDefinition = "TEXT")
 	private String bodyHtml;
 
 	@Column(name = "recipient_hint", length = 256)
 	private String recipientHint;
 
-	@Lob
-	@Column(name = "metadata_json")
+	@Column(name = "metadata_json", columnDefinition = "TEXT")
 	private String metadataJson;
 
 	@Column(name = "error_message", length = 1024)
 	private String errorMessage;
-
-	@Column(name = "created_at", nullable = false)
-	private Instant createdAt;
-
-	@Column(name = "updated_at", nullable = false)
-	private Instant updatedAt;
 
 	@Column(name = "dispatched_at")
 	private Instant dispatchedAt;
@@ -65,40 +53,114 @@ public class NotificationEntity {
 	protected NotificationEntity() {
 	}
 
-	public NotificationEntity(
-			UUID id,
-			UUID userId,
-			NotificationChannel channel,
-			String templateKey,
-			NotificationStatus status,
-			String sourceEventType,
-			String subject,
-			String bodyHtml,
-			String recipientHint,
-			String metadataJson,
-			String errorMessage,
-			Instant createdAt,
-			Instant updatedAt,
-			Instant dispatchedAt
-	) {
-		this.id = id;
-		this.userId = userId;
-		this.channel = channel;
-		this.templateKey = templateKey;
-		this.status = status;
-		this.sourceEventType = sourceEventType;
-		this.subject = subject;
-		this.bodyHtml = bodyHtml;
-		this.recipientHint = recipientHint;
-		this.metadataJson = metadataJson;
-		this.errorMessage = errorMessage;
-		this.createdAt = createdAt;
-		this.updatedAt = updatedAt;
-		this.dispatchedAt = dispatchedAt;
+	public static Builder builder() {
+		return new Builder();
 	}
 
-	public UUID getId() {
-		return id;
+	public static final class Builder {
+		private UUID id;
+		private UUID userId;
+		private NotificationChannel channel;
+		private String templateKey;
+		private NotificationStatus status;
+		private String sourceEventType;
+		private String subject;
+		private String bodyHtml;
+		private String recipientHint;
+		private String metadataJson;
+		private String errorMessage;
+		private Instant createdAt;
+		private Instant updatedAt;
+		private Instant dispatchedAt;
+
+		public Builder id(UUID id) {
+			this.id = id;
+			return this;
+		}
+
+		public Builder userId(UUID userId) {
+			this.userId = userId;
+			return this;
+		}
+
+		public Builder channel(NotificationChannel channel) {
+			this.channel = channel;
+			return this;
+		}
+
+		public Builder templateKey(String templateKey) {
+			this.templateKey = templateKey;
+			return this;
+		}
+
+		public Builder status(NotificationStatus status) {
+			this.status = status;
+			return this;
+		}
+
+		public Builder sourceEventType(String sourceEventType) {
+			this.sourceEventType = sourceEventType;
+			return this;
+		}
+
+		public Builder subject(String subject) {
+			this.subject = subject;
+			return this;
+		}
+
+		public Builder bodyHtml(String bodyHtml) {
+			this.bodyHtml = bodyHtml;
+			return this;
+		}
+
+		public Builder recipientHint(String recipientHint) {
+			this.recipientHint = recipientHint;
+			return this;
+		}
+
+		public Builder metadataJson(String metadataJson) {
+			this.metadataJson = metadataJson;
+			return this;
+		}
+
+		public Builder errorMessage(String errorMessage) {
+			this.errorMessage = errorMessage;
+			return this;
+		}
+
+		public Builder createdAt(Instant createdAt) {
+			this.createdAt = createdAt;
+			return this;
+		}
+
+		public Builder updatedAt(Instant updatedAt) {
+			this.updatedAt = updatedAt;
+			return this;
+		}
+
+		public Builder dispatchedAt(Instant dispatchedAt) {
+			this.dispatchedAt = dispatchedAt;
+			return this;
+		}
+
+		public NotificationEntity build() {
+			NotificationEntity e = new NotificationEntity();
+			e.id = id;
+			e.userId = userId;
+			e.channel = channel;
+			e.templateKey = templateKey;
+			e.status = status;
+			e.sourceEventType = sourceEventType;
+			e.subject = subject;
+			e.bodyHtml = bodyHtml;
+			e.recipientHint = recipientHint;
+			e.metadataJson = metadataJson;
+			e.errorMessage = errorMessage;
+			e.createdAt = createdAt;
+			e.updatedAt = updatedAt;
+			e.dispatchedAt = dispatchedAt;
+			return e;
+		}
 	}
 
 	public UUID getUserId() {
@@ -147,18 +209,6 @@ public class NotificationEntity {
 
 	public void setErrorMessage(String errorMessage) {
 		this.errorMessage = errorMessage;
-	}
-
-	public Instant getCreatedAt() {
-		return createdAt;
-	}
-
-	public Instant getUpdatedAt() {
-		return updatedAt;
-	}
-
-	public void setUpdatedAt(Instant updatedAt) {
-		this.updatedAt = updatedAt;
 	}
 
 	public Instant getDispatchedAt() {

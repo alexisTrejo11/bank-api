@@ -1,6 +1,6 @@
 # DOMAINS.md
 
-## Shared value objects (`io.github.alexistrejo11.bank.shared`)
+## Shared value objects (`io.github.alexistrejo11.bank.shared.shared_kernel`)
 
 These are used across all modules. Never re-define them locally.
 
@@ -28,11 +28,13 @@ public record TransferId(UUID value){ public static TransferId of(UUID v){ retur
 ## Module: IAM (`io.github.alexistrejo11.bank.iam`)
 
 ### Aggregates
+
 - `User` — root aggregate. Has `UserId`, `email`, `passwordHash`, `UserStatus`, `Set<Role>`.
 - `Role` — `name`, `Set<Permission>`.
 - `Permission` — fine-grained string: `accounts:read`, `accounts:write`, `payments:write`, `loans:read`, `loans:write`, `audit:read`, `admin:all`.
 
 ### Business rules
+
 1. Email must be unique across all users.
 2. Password stored as Bcrypt hash (cost factor ≥ 12). Never log or return in any response.
 3. JWT issued with RS256 (asymmetric). Payload includes `roles[]` and `permissions[]`.
@@ -43,21 +45,24 @@ public record TransferId(UUID value){ public static TransferId of(UUID v){ retur
 8. A `SUSPENDED` user's JWT is rejected even before expiry (check status on each request or embed in JWT and blocklist on suspend).
 
 ### Default seed roles
-| Role | Permissions |
-|---|---|
+
+| Role       | Permissions                                                                      |
+| ---------- | -------------------------------------------------------------------------------- |
 | `CUSTOMER` | `accounts:read`, `accounts:write`, `payments:write`, `loans:read`, `loans:write` |
-| `ADMIN` | `admin:all` |
-| `AUDITOR` | `accounts:read`, `audit:read`, `loans:read` |
+| `ADMIN`    | `admin:all`                                                                      |
+| `AUDITOR`  | `accounts:read`, `audit:read`, `loans:read`                                      |
 
 ---
 
 ## Module: Accounts (`io.github.alexistrejo11.bank.accounts`)
 
 ### Aggregates
+
 - `Account` — root. Has `AccountId`, `UserId`, `AccountType`, `Currency`, `AccountStatus`.
 - `LedgerEntry` — child entity. Has `LedgerEntryId`, `AccountId`, `EntryType (DEBIT|CREDIT)`, `Money`, `referenceId`, `referenceType`, `createdAt`.
 
 ### Business rules
+
 1. **Balance is always derived from the ledger — never stored.** `balance = SUM(CREDIT) - SUM(DEBIT)` for the account.
 2. Every balance mutation (deposit, withdrawal, transfer, loan disbursement, repayment) produces exactly two `LedgerEntry` rows: one DEBIT and one CREDIT on the affected accounts.
 3. `AccountType` values: `CHECKING`, `SAVINGS`, `LOAN`.
@@ -66,28 +71,33 @@ public record TransferId(UUID value){ public static TransferId of(UUID v){ retur
 6. Currency is set at account creation and is immutable.
 
 ### Events consumed
-| Event | Action |
-|---|---|
-| `TransferCompletedEvent` | Post DEBIT on source account, CREDIT on target account |
-| `LoanDisbursedEvent` | Post CREDIT on customer checking account |
-| `LoanRepaymentCompletedEvent` | Post DEBIT on customer checking account |
+
+| Event                         | Action                                                 |
+| ----------------------------- | ------------------------------------------------------ |
+| `TransferCompletedEvent`      | Post DEBIT on source account, CREDIT on target account |
+| `LoanDisbursedEvent`          | Post CREDIT on customer checking account               |
+| `LoanRepaymentCompletedEvent` | Post DEBIT on customer checking account                |
 
 ---
 
 ## Module: Payments (`io.github.alexistrejo11.bank.payments`)
 
 ### Aggregates
+
 - `Transfer` — root. Has `TransferId`, source `AccountId`, target `AccountId`, `Money`, `TransferStatus`, `idempotencyKey`, timestamps.
 
 ### State machine
+
 ```
 PENDING → PROCESSING → COMPLETED
                     ↘ FAILED
           COMPLETED → REVERSED
 ```
+
 State transitions are enforced inside the `Transfer` aggregate — no direct field mutation from outside.
 
 ### Business rules
+
 1. Every POST `/transfers` requires `Idempotency-Key` UUID header.
 2. Idempotency check: look up `idempotencyKey` in Redis (TTL = 24h). If found, return the cached response — do not re-process.
 3. Source and target accounts must be in the same currency (no FX in v1 — return `Result.failure("CURRENCY_MISMATCH", ...)`).
@@ -97,23 +107,26 @@ State transitions are enforced inside the `Transfer` aggregate — no direct fie
 7. Only `COMPLETED` transfers may be reversed. Reversal creates a new `Transfer` with `referenceTransferId` pointing to the original.
 
 ### Events published
-| Event | When |
-|---|---|
-| `TransferCompletedEvent` | After successful ledger posting |
-| `TransferFailedEvent` | After any failure during processing |
-| `TransferReversedEvent` | After reversal transfer completes |
+
+| Event                    | When                                |
+| ------------------------ | ----------------------------------- |
+| `TransferCompletedEvent` | After successful ledger posting     |
+| `TransferFailedEvent`    | After any failure during processing |
+| `TransferReversedEvent`  | After reversal transfer completes   |
 
 ---
 
 ## Module: Loans (`io.github.alexistrejo11.bank.loans`)
 
 ### Aggregates
+
 - `Loan` — root. Has `LoanId`, `AccountId` (associated checking account), `Money` (principal), `interestRate`, `termMonths`, `LoanStatus`, `List<LoanRepayment>`.
 - `LoanRepayment` — child. Has `LoanRepaymentId`, due date, `Money` (amount), `RepaymentStatus`, `paidAt`.
 
 ### Business rules
+
 1. Amortization schedule is generated at origination using fixed monthly payment formula:
-   `M = P * [r(1+r)^n] / [(1+r)^n - 1]`  where r = monthly rate, n = term in months.
+   `M = P * [r(1+r)^n] / [(1+r)^n - 1]` where r = monthly rate, n = term in months.
 2. `LoanStatus` values: `PENDING_APPROVAL`, `ACTIVE`, `PAID_OFF`, `DEFAULTED`.
 3. `RepaymentStatus` values: `PENDING`, `PAID`, `OVERDUE`.
 4. A loan account (`AccountType.LOAN`) is created automatically on loan approval.
@@ -123,18 +136,20 @@ State transitions are enforced inside the `Transfer` aggregate — no direct fie
 8. Interest rate is stored as BigDecimal (e.g. `0.0125` = 1.25% monthly). Never use double/float for financial math.
 
 ### Events published
-| Event | When |
-|---|---|
-| `LoanApprovedEvent` | After origination approval |
-| `LoanDisbursedEvent` | After funds are credited to customer account |
-| `LoanRepaymentCompletedEvent` | After each installment is paid |
-| `LoanPaidOffEvent` | When all installments reach PAID status |
+
+| Event                         | When                                         |
+| ----------------------------- | -------------------------------------------- |
+| `LoanApprovedEvent`           | After origination approval                   |
+| `LoanDisbursedEvent`          | After funds are credited to customer account |
+| `LoanRepaymentCompletedEvent` | After each installment is paid               |
+| `LoanPaidOffEvent`            | When all installments reach PAID status      |
 
 ---
 
 ## Module: Notifications (`io.github.alexistrejo11.bank.notifications`)
 
 ### Business rules
+
 1. Notifications are fire-and-forget — failures do not roll back the originating transaction.
 2. Every notification is logged in `notification_log` with status `SENT` or `FAILED`.
 3. Templates are keyed by `templateKey` string (e.g. `transfer.completed`, `loan.approved`).
@@ -143,22 +158,25 @@ State transitions are enforced inside the `Transfer` aggregate — no direct fie
 6. In **v0.2.0**, the same business triggers may arrive via **Kafka** (consumer in `bank-notifications`); the domain still does not depend on broker APIs—only infrastructure adapters do.
 
 ### Events consumed
-| Event | Notification sent |
-|---|---|
-| `TransferCompletedEvent` | Email to sender (debit) and receiver (credit) |
-| `TransferFailedEvent` | Email to sender |
-| `LoanApprovedEvent` | Email to customer |
-| `LoanRepaymentCompletedEvent` | Email receipt to customer |
-| `LoanPaidOffEvent` | Congratulations email to customer |
+
+| Event                         | Notification sent                             |
+| ----------------------------- | --------------------------------------------- |
+| `TransferCompletedEvent`      | Email to sender (debit) and receiver (credit) |
+| `TransferFailedEvent`         | Email to sender                               |
+| `LoanApprovedEvent`           | Email to customer                             |
+| `LoanRepaymentCompletedEvent` | Email receipt to customer                     |
+| `LoanPaidOffEvent`            | Congratulations email to customer             |
 
 ---
 
 ## Module: Audit (`io.github.alexistrejo11.bank.audit`)
 
 ### Aggregates
+
 - `AuditRecord` — append-only. Has `id`, `eventType`, `actorId` (UserId), `entityType`, `entityId`, `payload` (JSONB), `createdAt`.
 
 ### Business rules
+
 1. `AuditRecord` is NEVER updated or deleted. Enforced by a DB-level trigger (`BEFORE UPDATE OR DELETE → RAISE EXCEPTION`).
 2. Every domain event from every module is captured. The `AuditEventListener` subscribes to all events that extend `BankDomainEvent`.
 3. `payload` stores the full event serialized as JSON — provides full reconstruction capability.
@@ -169,6 +187,7 @@ State transitions are enforced inside the `Transfer` aggregate — no direct fie
 ---
 
 ## Financial math rules (apply everywhere)
+
 - Always use `BigDecimal` for monetary values. Never `double` or `float`.
 - Always use `RoundingMode.HALF_UP` for rounding.
 - Always store amounts with scale 2 (cents precision).

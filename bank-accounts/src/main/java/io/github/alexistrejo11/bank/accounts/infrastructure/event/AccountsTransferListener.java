@@ -1,14 +1,16 @@
 package io.github.alexistrejo11.bank.accounts.infrastructure.event;
 
-import io.github.alexistrejo11.bank.accounts.domain.command.PostTransferToLedgerCommand;
-import io.github.alexistrejo11.bank.accounts.domain.port.in.command.PostTransferToLedgerUseCase;
-import io.github.alexistrejo11.bank.shared.event.TransferCompletedEvent;
+import io.github.alexistrejo11.bank.accounts.application.command.PostTransferToLedgerCommand;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferCompletedEvent;
+import io.github.alexistrejo11.bank.accounts.application.PostTransferToLedgerUseCase;
+
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Applies ledger postings when the payments module publishes {@link TransferCompletedEvent}.
+ * Applies ledger postings when the payments module publishes
+ * {@link TransferCompletedEvent}.
  */
 @Component
 public class AccountsTransferListener {
@@ -28,7 +30,6 @@ public class AccountsTransferListener {
 				event.amount(),
 				event.currencyCode(),
 				"TRANSFER",
-				event.transferId().value()
-		));
+				event.transferId().value()));
 	}
 }

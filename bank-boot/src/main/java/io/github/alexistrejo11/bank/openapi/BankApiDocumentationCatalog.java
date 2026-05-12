@@ -1,11 +1,12 @@
 package io.github.alexistrejo11.bank.openapi;
 
-import io.github.alexistrejo11.bank.shared.openapi.BankApiKeys;
+import io.github.alexistrejo11.bank.shared.shared_kernel.openapi.BankApiKeys;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * All operation-level OpenAPI copy lives here (and in DTO {@code @Schema} annotations), not on controllers.
+ * All operation-level OpenAPI copy lives here (and in DTO {@code @Schema}
+ * annotations), not on controllers.
  */
 public final class BankApiDocumentationCatalog {
 

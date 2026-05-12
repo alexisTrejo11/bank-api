@@ -2,7 +2,7 @@ package io.github.alexistrejo11.bank.notifications.infrastructure.messaging;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.alexistrejo11.bank.notifications.domain.command.DispatchNotificationCommand;
+import io.github.alexistrejo11.bank.notifications.application.command.DispatchNotificationCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

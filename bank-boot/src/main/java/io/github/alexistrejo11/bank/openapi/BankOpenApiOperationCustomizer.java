@@ -1,6 +1,6 @@
 package io.github.alexistrejo11.bank.openapi;
 
-import io.github.alexistrejo11.bank.shared.openapi.BankApiOperation;
+import io.github.alexistrejo11.bank.shared.shared_kernel.openapi.BankApiOperation;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import java.util.List;
@@ -9,7 +9,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 
 /**
- * Applies {@link BankApiOperation} keys to Springdoc operations using {@link BankApiDocumentationRegistry}.
+ * Applies {@link BankApiOperation} keys to Springdoc operations using
+ * {@link BankApiDocumentationRegistry}.
  */
 @Component
 public class BankOpenApiOperationCustomizer implements OperationCustomizer {
@@ -43,8 +44,7 @@ public class BankOpenApiOperationCustomizer implements OperationCustomizer {
 		}
 		if (doc.bearerAuthRequired()) {
 			operation.addSecurityItem(new SecurityRequirement().addList(BankOpenApiConfiguration.JWT_SECURITY_SCHEME_NAME));
-		}
-		else {
+		} else {
 			operation.setSecurity(List.of());
 		}
 		return operation;

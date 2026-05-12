@@ -1,15 +1,17 @@
 package io.github.alexistrejo11.bank.payments.infrastructure.event;
 
-import io.github.alexistrejo11.bank.shared.event.TransferCompletedEvent;
-import io.github.alexistrejo11.bank.shared.event.TransferFailedEvent;
-import io.github.alexistrejo11.bank.shared.event.TransferReversedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferCompletedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferFailedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferReversedEvent;
+
 /**
- * Stub until the notifications module exists: logs transfer lifecycle for ops visibility.
+ * Stub until the notifications module exists: logs transfer lifecycle for ops
+ * visibility.
  */
 @Component
 public class PaymentsNotificationListener {

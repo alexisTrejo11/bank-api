@@ -1,9 +1,9 @@
 package io.github.alexistrejo11.bank.iam.infrastructure.persistence.entity;
 
+import io.github.alexistrejo11.bank.shared.shared_kernel.persistence.UuidJpaEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
@@ -15,32 +15,42 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "roles")
-public class RoleEntity {
-
-	@Id
-	private UUID id;
+public class RoleEntity extends UuidJpaEntity {
 
 	@Column(nullable = false, unique = true)
 	private String name;
 
 	@ManyToMany(fetch = FetchType.LAZY)
-	@JoinTable(
-			name = "role_permissions",
-			joinColumns = @JoinColumn(name = "role_id"),
-			inverseJoinColumns = @JoinColumn(name = "permission_id")
-	)
+	@JoinTable(name = "role_permissions", joinColumns = @JoinColumn(name = "role_id"), inverseJoinColumns = @JoinColumn(name = "permission_id"))
 	private Set<PermissionEntity> permissions = new HashSet<>();
 
 	protected RoleEntity() {
 	}
 
-	public RoleEntity(UUID id, String name) {
-		this.id = id;
-		this.name = name;
+	public static Builder builder() {
+		return new Builder();
 	}
 
-	public UUID getId() {
-		return id;
+	public static final class Builder {
+		private UUID id;
+		private String name;
+
+		public Builder id(UUID id) {
+			this.id = id;
+			return this;
+		}
+
+		public Builder name(String name) {
+			this.name = name;
+			return this;
+		}
+
+		public RoleEntity build() {
+			RoleEntity e = new RoleEntity();
+			e.id = id;
+			e.name = name;
+			return e;
+		}
 	}
 
 	public String getName() {

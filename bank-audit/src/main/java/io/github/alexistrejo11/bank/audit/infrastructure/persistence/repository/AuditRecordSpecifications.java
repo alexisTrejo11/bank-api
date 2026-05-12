@@ -1,6 +1,6 @@
 package io.github.alexistrejo11.bank.audit.infrastructure.persistence.repository;
 
-import io.github.alexistrejo11.bank.audit.domain.model.AuditRecordFilters;
+import io.github.alexistrejo11.bank.audit.application.query.AuditRecordFilters;
 import io.github.alexistrejo11.bank.audit.infrastructure.persistence.entity.AuditRecordEntity;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;

@@ -1,6 +1,6 @@
 package io.github.alexistrejo11.bank.infrastructure.messaging.kafka;
 
-import io.github.alexistrejo11.bank.shared.messaging.BankKafkaTopics;
+import io.github.alexistrejo11.bank.shared.shared_kernel.messaging.BankKafkaTopics;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;

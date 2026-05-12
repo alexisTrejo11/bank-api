@@ -6,7 +6,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.github.alexistrejo11.bank.notifications.domain.command.DispatchNotificationCommand;
+import io.github.alexistrejo11.bank.notifications.application.command.DispatchNotificationCommand;
 import io.github.alexistrejo11.bank.notifications.domain.model.GenericEmailContent;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationTemplateKey;
 import io.github.alexistrejo11.bank.notifications.domain.port.out.EmailTemplateRendererPort;

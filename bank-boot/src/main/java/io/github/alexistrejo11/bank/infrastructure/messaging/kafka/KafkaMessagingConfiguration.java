@@ -1,7 +1,8 @@
 package io.github.alexistrejo11.bank.infrastructure.messaging.kafka;
 
-import io.github.alexistrejo11.bank.shared.event.BankDomainEvent;
-import io.github.alexistrejo11.bank.shared.messaging.BankKafkaTopics;
+import io.github.alexistrejo11.bank.shared.shared_kernel.messaging.BankKafkaTopics;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.BankDomainEvent;
+
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -30,8 +31,7 @@ public class KafkaMessagingConfiguration {
 	@Bean
 	public ConsumerFactory<String, BankDomainEvent> bankDomainEventConsumerFactory(
 			@Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
-			@Value("${spring.kafka.consumer.auto-offset-reset:earliest}") String autoOffsetReset
-	) {
+			@Value("${spring.kafka.consumer.auto-offset-reset:earliest}") String autoOffsetReset) {
 		Map<String, Object> props = new HashMap<>();
 		props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
 		props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
@@ -40,23 +40,21 @@ public class KafkaMessagingConfiguration {
 		JsonDeserializer<BankDomainEvent> jsonDeserializer = new JsonDeserializer<>(BankDomainEvent.class);
 		jsonDeserializer.addTrustedPackages("io.github.alexistrejo11.bank");
 		jsonDeserializer.setUseTypeMapperForKey(false);
-		ErrorHandlingDeserializer<BankDomainEvent> errorHandlingDeserializer =
-				new ErrorHandlingDeserializer<>(jsonDeserializer);
+		ErrorHandlingDeserializer<BankDomainEvent> errorHandlingDeserializer = new ErrorHandlingDeserializer<>(
+				jsonDeserializer);
 		return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), errorHandlingDeserializer);
 	}
 
 	@Bean
 	public ConcurrentKafkaListenerContainerFactory<String, BankDomainEvent> bankDomainEventKafkaListenerContainerFactory(
 			ConsumerFactory<String, BankDomainEvent> bankDomainEventConsumerFactory,
-			KafkaTemplate<String, ?> kafkaTemplate
-	) {
+			KafkaTemplate<String, ?> kafkaTemplate) {
 		DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
 				kafkaTemplate,
 				(record, ex) -> new TopicPartition(BankKafkaTopics.DLQ, 0));
 		DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(2000L, 3L));
 
-		ConcurrentKafkaListenerContainerFactory<String, BankDomainEvent> factory =
-				new ConcurrentKafkaListenerContainerFactory<>();
+		ConcurrentKafkaListenerContainerFactory<String, BankDomainEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
 		factory.setConsumerFactory(bankDomainEventConsumerFactory);
 		factory.setCommonErrorHandler(errorHandler);
 		return factory;
@@ -64,8 +62,7 @@ public class KafkaMessagingConfiguration {
 
 	@Bean
 	public ConsumerFactory<String, String> dlqStringConsumerFactory(
-			@Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
-	) {
+			@Value("${spring.kafka.bootstrap-servers}") String bootstrapServers) {
 		Map<String, Object> props = new HashMap<>();
 		props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
 		props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
@@ -76,10 +73,8 @@ public class KafkaMessagingConfiguration {
 
 	@Bean
 	public ConcurrentKafkaListenerContainerFactory<String, String> dlqStringKafkaListenerContainerFactory(
-			ConsumerFactory<String, String> dlqStringConsumerFactory
-	) {
-		ConcurrentKafkaListenerContainerFactory<String, String> factory =
-				new ConcurrentKafkaListenerContainerFactory<>();
+			ConsumerFactory<String, String> dlqStringConsumerFactory) {
+		ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
 		factory.setConsumerFactory(dlqStringConsumerFactory);
 		return factory;
 	}

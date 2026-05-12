@@ -2,7 +2,7 @@ package io.github.alexistrejo11.bank.notifications.application.handler.command;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.alexistrejo11.bank.notifications.domain.command.DispatchNotificationCommand;
+import io.github.alexistrejo11.bank.notifications.application.command.DispatchNotificationCommand;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationChannel;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationLogRecord;
 import io.github.alexistrejo11.bank.notifications.domain.model.NotificationStatus;

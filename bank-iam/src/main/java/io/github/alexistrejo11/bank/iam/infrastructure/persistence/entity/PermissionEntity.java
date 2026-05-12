@@ -1,18 +1,15 @@
 package io.github.alexistrejo11.bank.iam.infrastructure.persistence.entity;
 
+import io.github.alexistrejo11.bank.shared.shared_kernel.persistence.UuidJpaEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.Objects;
 import java.util.UUID;
 
 @Entity
 @Table(name = "permissions")
-public class PermissionEntity {
-
-	@Id
-	private UUID id;
+public class PermissionEntity extends UuidJpaEntity {
 
 	@Column(nullable = false, unique = true)
 	private String name;
@@ -20,13 +17,30 @@ public class PermissionEntity {
 	protected PermissionEntity() {
 	}
 
-	public PermissionEntity(UUID id, String name) {
-		this.id = id;
-		this.name = name;
+	public static Builder builder() {
+		return new Builder();
 	}
 
-	public UUID getId() {
-		return id;
+	public static final class Builder {
+		private UUID id;
+		private String name;
+
+		public Builder id(UUID id) {
+			this.id = id;
+			return this;
+		}
+
+		public Builder name(String name) {
+			this.name = name;
+			return this;
+		}
+
+		public PermissionEntity build() {
+			PermissionEntity e = new PermissionEntity();
+			e.id = id;
+			e.name = name;
+			return e;
+		}
 	}
 
 	public String getName() {

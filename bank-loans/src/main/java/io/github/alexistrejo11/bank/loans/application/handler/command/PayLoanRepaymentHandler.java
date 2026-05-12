@@ -1,21 +1,21 @@
 package io.github.alexistrejo11.bank.loans.application.handler.command;
 
-import io.github.alexistrejo11.bank.loans.api.dto.response.PayRepaymentResponse;
-import io.github.alexistrejo11.bank.loans.domain.command.PayLoanRepaymentCommand;
+import io.github.alexistrejo11.bank.loans.application.command.PayLoanRepaymentCommand;
 import io.github.alexistrejo11.bank.loans.domain.model.LoanAggregate;
 import io.github.alexistrejo11.bank.loans.domain.model.LoanRepaymentLine;
 import io.github.alexistrejo11.bank.loans.domain.model.LoanStatus;
 import io.github.alexistrejo11.bank.loans.domain.model.RepaymentStatus;
-import io.github.alexistrejo11.bank.loans.domain.port.out.LoanLedgerOperationsPort;
-import io.github.alexistrejo11.bank.loans.domain.port.out.LoanRepository;
-import io.github.alexistrejo11.bank.shared.event.LoanPaidOffEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanRepaymentCompletedEvent;
-import io.github.alexistrejo11.bank.shared.exception.ResourceNotFoundException;
-import io.github.alexistrejo11.bank.shared.ids.AccountId;
-import io.github.alexistrejo11.bank.shared.ids.LoanId;
-import io.github.alexistrejo11.bank.shared.ids.LoanRepaymentId;
-import io.github.alexistrejo11.bank.shared.ids.UserId;
-import io.github.alexistrejo11.bank.shared.result.Result;
+import io.github.alexistrejo11.bank.loans.domain.repository.LoanLedgerOperationsRepository;
+import io.github.alexistrejo11.bank.loans.domain.repository.LoanRepository;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.AccountId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.LoanId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.LoanRepaymentId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.UserId;
+import io.github.alexistrejo11.bank.shared.shared_kernel.result.Result;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanPaidOffEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanRepaymentCompletedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.exception.ResourceNotFoundException;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -27,21 +27,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class PayLoanRepaymentHandler {
 
 	private final LoanRepository loanRepository;
-	private final LoanLedgerOperationsPort ledgerOperationsPort;
+	private final LoanLedgerOperationsRepository ledgerOperationsPort;
 	private final ApplicationEventPublisher eventPublisher;
 
 	public PayLoanRepaymentHandler(
 			LoanRepository loanRepository,
-			LoanLedgerOperationsPort ledgerOperationsPort,
-			ApplicationEventPublisher eventPublisher
-	) {
+			LoanLedgerOperationsRepository ledgerOperationsPort,
+			ApplicationEventPublisher eventPublisher) {
 		this.loanRepository = loanRepository;
 		this.ledgerOperationsPort = ledgerOperationsPort;
 		this.eventPublisher = eventPublisher;
 	}
 
 	@Transactional
-	public Result<PayRepaymentResponse> handle(UserId userId, PayLoanRepaymentCommand command) {
+	public Result<LoanAggregate> handle(UserId userId, PayLoanRepaymentCommand command) {
 		LoanAggregate loan = loanRepository.findWithRepayments(command.loanId(), userId.value())
 				.orElseThrow(() -> new ResourceNotFoundException("LOAN_NOT_FOUND", "Loan not found"));
 		if (loan.status() != LoanStatus.ACTIVE) {
@@ -60,8 +59,7 @@ public class PayLoanRepaymentHandler {
 				repaymentId,
 				AccountId.of(loan.checkingAccountId()),
 				rep.amount(),
-				loan.currency()
-		);
+				loan.currency());
 		Instant now = Instant.now();
 		List<LoanRepaymentLine> newRepayments = loan.repayments().stream()
 				.map(r -> r.id().equals(repaymentId) ? r.withPaid(now) : r)
@@ -72,17 +70,15 @@ public class PayLoanRepaymentHandler {
 
 		if (allPaid) {
 			eventPublisher.publishEvent(new LoanPaidOffEvent(LoanId.of(loan.id())));
-		}
-		else {
+		} else {
 			eventPublisher.publishEvent(new LoanRepaymentCompletedEvent(
 					LoanId.of(loan.id()),
 					LoanRepaymentId.of(repaymentId),
 					AccountId.of(loan.checkingAccountId()),
 					rep.amount(),
-					loan.currency()
-			));
+					loan.currency()));
 		}
 		loanRepository.update(updated);
-		return Result.success(new PayRepaymentResponse(repaymentId, RepaymentStatus.PAID, newStatus));
+		return Result.success(updated);
 	}
 }

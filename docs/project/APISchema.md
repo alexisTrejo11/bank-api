@@ -1,641 +1,200 @@
-# API Schema
+# API schema (REST)
 
-- **Type**: `REST` (with OpenAPI/Swagger documentation)
+Human-readable reference derived from [`source/APISchema.md`](source/APISchema.md). **Type:** REST. All business routes live under **`/api/v1`**. Most responses use the shared envelope **`ApiResponse<T>`** unless noted.
 
----
+## Conventions
 
-## HTTP Endpoints (`ApiEndpoint[]`)
+### Authentication
 
-### Endpoint 1: Register User
+- **JWT Bearer** for protected routes: header `Authorization: Bearer <access_token>`.  
+- **Anonymous** routes: `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, OpenAPI static paths (`/swagger-ui/**`, `/v3/api-docs/**`), and `/.well-known/jwks.json` (see `SecurityConfig`).  
+- **`POST /api/v1/auth/logout`:** expects Bearer access token; returns **204 No Content** with **no JSON body** on success.
 
-- **ID**: "api-iam-001"
-- **Method**: `POST`
-- **URL Path**: `/api/v1/auth/register`
-- **Summary**: "Register a new user"
-- **Description**: "Creates a new user with default role. Returns user details with generated ID."
-- **Tags**: `["iam", "auth"]`
-- **Authenticated**: `false`
-- **Rate Limit**: "10 req/min (IP)"
+### Authorities (examples)
 
-#### Request Body (`ApiRequestBody`)
+Routes are protected with Spring Security **authorities** such as `accounts:read`, `accounts:write`, `payments:write`, `loans:read`, `loans:write`, `audit:read`, `notifications:read`. See [`SecurityConfig`](../../bank-config/src/main/java/io/github/alexisTrejo11/bank/security/SecurityConfig.java) for the authoritative mapping.
 
-- **Content Type**: "application/json"
-- **Schema**: 
-  ```json
-  {
-    "email": "string",
-    "password": "string",
-    "firstName": "string",
-    "lastName": "string"
-  }
-  ```
-- **Example**:
-  ```json
-  {
-    "email": "user@example.com",
-    "password": "securePassword123",
-    "firstName": "John",
-    "lastName": "Doe"
-  }
-  ```
+### Rate limiting (when `bank.rate-limiting.enabled=true`)
 
-#### Responses (`ApiResponse[]`)
+- **Global** Redis token bucket (default **64** burst, **1** token/s refill) applies broadly.  
+- **nginx** (Compose) adds **30 r/s** zone on `/api/` (see `infra/nginx/nginx.conf`).  
+- **Annotated profiles:** **STRICT** (auth), **STANDARD** (e.g. `/me`), **SENSITIVE_OPERATIONS** (loan writes), **STRICT** per user on `TransferController`. Defaults: STRICT **12 @ 0.2/s**, STANDARD **48 @ 0.8/s**, SENSITIVE **6 @ 0.1/s** unless overridden in YAML.
 
-- **Status**: 201
-- **Description**: "User created successfully"
-- **Schema**: 
-  ```json
-  {
-    "data": { "userId": "uuid", "email": "string" }
-  }
-  ```
+### Error shape
 
-- **Status**: 400
-- **Description**: "Validation error"
-- **Schema**: "RFC 7807 ProblemDetail"
+Domain failures on payments/loans often return **422 Unprocessable Content** with:
+
+```json
+{ "success": false, "errorCode": "SOME_CODE", "errorMessage": "Human-readable message" }
+```
+
+Exact field names match your `ApiResponse` implementation in **`bank-shared`**.
 
 ---
 
-### Endpoint 2: Login
+## Endpoint index
 
-- **ID**: "api-iam-002"
-- **Method**: `POST`
-- **URL Path**: `/api/v1/auth/login`
-- **Summary**: "Authenticate user"
-- **Description**: "Authenticates user with email/password, returns JWT access token and refresh token."
-- **Tags**: `["iam", "auth"]`
-- **Authenticated**: `false`
-- **Rate Limit**: "5 req/min (IP)"
+| Method | Path | Authenticated | Summary |
+|--------|------|---------------|---------|
+| POST | `/api/v1/auth/register` | No | Register; returns tokens (**201**) |
+| POST | `/api/v1/auth/login` | No | Login with email/password |
+| POST | `/api/v1/auth/refresh` | No | Rotate tokens with refresh token |
+| POST | `/api/v1/auth/logout` | Yes (Bearer) | Logout — **204** empty body |
+| GET | `/api/v1/auth/me` | Yes | Current user id + email |
+| POST | `/api/v1/accounts` | Yes | Open account (`accounts:write`) |
+| GET | `/api/v1/accounts/{accountId}/balance` | Yes | Derived balance (`accounts:read`) |
+| GET | `/api/v1/accounts/{accountId}/ledger` | Yes | Paginated ledger (`accounts:read`) |
+| POST | `/api/v1/payments/transfers` | Yes | Transfer (`payments:write`) + **`Idempotency-Key`** header |
+| POST | `/api/v1/payments/transfers/{transferId}/reverse` | Yes | Reverse transfer + **`Idempotency-Key`** |
+| POST | `/api/v1/loans` | Yes | Originate loan (`loans:write`) |
+| POST | `/api/v1/loans/{loanId}/approve` | Yes | Approve loan (`loans:write`) |
+| GET | `/api/v1/loans/{loanId}` | Yes | Loan detail (`loans:read`) |
+| POST | `/api/v1/loans/{loanId}/repayments/{repaymentId}/pay` | Yes | Pay installment (`loans:write`) |
+| GET | `/api/v1/audit/records` | Yes | Search audit (`audit:read`) |
+| GET | `/api/v1/notifications/monitoring/records` | Yes | Notification records (`notifications:read`) |
+| GET | `/api/v1/notifications/monitoring/summary` | Yes | Notification summary (`notifications:read`) |
+| GET | `/actuator/health` | No* | Liveness/readiness — **restrict on AWS** |
 
-#### Request Body (`ApiRequestBody`)
-
-- **Content Type**: "application/json"
-- **Schema**:
-  ```json
-  {
-    "email": "string",
-    "password": "string"
-  }
-  ```
-- **Example**:
-  ```json
-  {
-    "email": "user@example.com",
-    "password": "securePassword123"
-  }
-  ```
-
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 200
-- **Description**: "Authentication successful"
-- **Schema**:
-  ```json
-  {
-    "data": {
-      "accessToken": "string",
-      "refreshToken": "string",
-      "expiresIn": 900
-    }
-  }
-  ```
-
-- **Status**: 401
-- **Description**: "Invalid credentials"
+\*Permitted without auth in app config; **must** be protected by network controls in production.
 
 ---
 
-### Endpoint 3: Refresh Token
+## Authentication
 
-- **ID**: "api-iam-003"
-- **Method**: `POST`
-- **URL Path**: `/api/v1/auth/refresh`
-- **Summary**: "Refresh access token"
-- **Description**: "Exchanges refresh token for new access token."
-- **Tags**: `["iam", "auth"]`
-- **Authenticated**: `false`
-- **Rate Limit**: "10 req/min (IP)"
+### `POST /api/v1/auth/register`
 
-#### Request Body (`ApiRequestBody`)
+- **Body:** `{ "email": "string", "password": "string" }` — password length **8–128** (see `RegisterRequest`).  
+- **Responses:** **201** `ApiResponse<TokenResponse>`; **400** validation; **429** rate limit.  
+- **`TokenResponse` fields:** `accessToken`, `refreshToken`, `tokenType` (e.g. `Bearer`), `expiresInSeconds`.
 
-- **Content Type**: "application/json"
-- **Schema**:
-  ```json
-  {
-    "refreshToken": "string"
-  }
-  ```
+### `POST /api/v1/auth/login`
 
-#### Responses (`ApiResponse[]`)
+- **Body:** `{ "email": "string", "password": "string" }` (`LoginRequest`).  
+- **Responses:** **200** token bundle; **401** invalid credentials.
 
-- **Status**: 200
-- **Description**: "Token refreshed"
-- **Schema**:
-  ```json
-  {
-    "data": {
-      "accessToken": "string",
-      "expiresIn": 900
-    }
-  }
-  ```
+### `POST /api/v1/auth/refresh`
+
+- **Body:** `{ "refreshToken": "string" }` (`RefreshRequest`).  
+- **Responses:** **200** new tokens; **401** invalid refresh.
+
+### `POST /api/v1/auth/logout`
+
+- **Headers:** `Authorization: Bearer <access>`.  
+- **Responses:** **204** no body; **401** missing/invalid header.
+
+### `GET /api/v1/auth/me`
+
+- **Responses:** **200** `ApiResponse<MeResponse>` with `userId`, `email`.
 
 ---
 
-### Endpoint 4: Logout
+## Accounts
 
-- **ID**: "api-iam-004"
-- **Method**: `POST`
-- **URL Path**: `/api/v1/auth/logout`
-- **Summary**: "Logout user"
-- **Description**: "Invalidates current JWT by adding to blocklist."
-- **Tags**: `["iam", "auth"]`
-- **Authenticated**: `true`
-- **Rate Limit**: "10 req/min"
+### `POST /api/v1/accounts`
 
-#### Responses (`ApiResponse[]`)
+- **Authority:** `accounts:write`.  
+- **Body:** `{ "type": "CHECKING|SAVINGS|INTERNAL|LOAN", "currency": "USD" }` (ISO 4217 alpha **3** letters).  
+- **Responses:** **200** `ApiResponse<OpenAccountResponse>` (`accountId`, `currency`, `type`); **403** without authority.
 
-- **Status**: 200
-- **Description**: "Logged out successfully"
+### `GET /api/v1/accounts/{accountId}/balance`
 
----
+- **Authority:** `accounts:read`.  
+- **Path:** `accountId` UUID.  
+- **Responses:** **200** `ApiResponse<BalanceResponse>`; **404** not found / not owned.
 
-### Endpoint 5: Create Account
+### `GET /api/v1/accounts/{accountId}/ledger`
 
-- **ID**: "api-accounts-001"
-- **Method**: `POST`
-- **URL Path**: `/api/v1/accounts`
-- **Summary**: "Open a new account"
-- **Description**: "Creates a new account for the authenticated user."
-- **Tags**: `["accounts"]`
-- **Authenticated**: `true`
-- **Rate Limit**: "5 req/min"
-
-#### Request Body (`ApiRequestBody`)
-
-- **Content Type**: "application/json"
-- **Schema**:
-  ```json
-  {
-    "type": "CHECKING | SAVINGS",
-    "currency": "USD"
-  }
-  ```
-
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 201
-- **Description**: "Account created"
-- **Schema**:
-  ```json
-  {
-    "data": {
-      "accountId": "uuid",
-      "type": "CHECKING",
-      "currency": "USD",
-      "status": "ACTIVE"
-    }
-  }
-  ```
+- **Authority:** `accounts:read`.  
+- **Query:** standard Spring Data **`page`**, **`size`** (default **20**), optional **`sort`**.  
+- **Responses:** **200** `ApiResponse<LedgerPageResponse>`.
 
 ---
 
-### Endpoint 6: Get Account Balance
+## Payments
 
-- **ID**: "api-accounts-002"
-- **Method**: `GET`
-- **URL Path**: `/api/v1/accounts/{id}/balance`
-- **Summary**: "Get account balance"
-- **Description**: "Returns derived balance from ledger entries."
-- **Tags**: `["accounts"]`
-- **Authenticated**: `true`
-- **Rate Limit**: "30 req/min"
+### `POST /api/v1/payments/transfers`
 
-#### Parameters (`ApiParameter[]`)
+- **Authority:** `payments:write`.  
+- **Headers:** **`Idempotency-Key: <UUID>`** (required).  
+- **Body:** `{ "sourceAccountId", "targetAccountId", "amount", "currency" }` (`TransferFundsRequest`).  
+- **Responses:** **200** success; **422** domain failure (`ApiResponse` failure).
 
-- **Name**: "id"
-- **In**: "path"
-- **Type**: "uuid"
-- **Required**: `true`
-- **Description**: "Account ID"
+### `POST /api/v1/payments/transfers/{transferId}/reverse`
 
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 200
-- **Description**: "Balance retrieved"
-- **Schema**:
-  ```json
-  {
-    "data": {
-      "accountId": "uuid",
-      "amount": "1000.00",
-      "currency": "USD"
-    }
-  }
-  ```
+- **Authority:** `payments:write`.  
+- **Headers:** **`Idempotency-Key`**.  
+- **Responses:** **200** / **422** analogous to transfer.
 
 ---
 
-### Endpoint 7: Get Account Ledger
+## Loans
 
-- **ID**: "api-accounts-003"
-- **Method**: `GET`
-- **URL Path**: `/api/v1/accounts/{id}/ledger`
-- **Summary**: "Get account ledger entries"
-- **Description**: "Returns paginated ledger entries for an account."
-- **Tags**: `["accounts"]`
-- **Authenticated**: `true`
-- **Rate Limit**: "30 req/min"
+### `POST /api/v1/loans`
 
-#### Parameters (`ApiParameter[]`)
+- **Authority:** `loans:write`.  
+- **Body:** `checkingAccountId`, `principal`, `currency`, `monthlyInterestRate`, `termMonths` (`OriginateLoanRequest`).  
+- **Responses:** **200** `ApiResponse<LoanDetailResponse>`.
 
-- **Name**: "id"
-- **In**: "path"
-- **Type**: "uuid"
-- **Required**: `true`
-- **Description**: "Account ID"
+### `POST /api/v1/loans/{loanId}/approve`
 
-- **Name**: "page"
-- **In**: "query"
-- **Type**: "integer"
-- **Required**: `false`
-- **Description**: "Page number (default: 0)"
+- **Authority:** `loans:write`.  
+- **Responses:** **200** `ApiResponse<LoanDetailResponse>`.
 
-- **Name**: "size"
-- **In**: "query"
-- **Type**: "integer"
-- **Required**: `false`
-- **Description**: "Page size (default: 20)"
+### `GET /api/v1/loans/{loanId}`
 
-#### Responses (`ApiResponse[]`)
+- **Authority:** `loans:read`.  
+- **Responses:** **200** `ApiResponse<LoanDetailResponse>`.
 
-- **Status**: 200
-- **Description**: "Ledger entries"
-- **Schema**:
-  ```json
-  {
-    "data": {
-      "content": [
-        {
-          "id": "uuid",
-          "type": "DEBIT | CREDIT",
-          "amount": "100.00",
-          "currency": "USD",
-          "createdAt": "2026-01-01T00:00:00Z"
-        }
-      ],
-      "totalElements": 100,
-      "totalPages": 5
-    }
-  }
-  ```
+### `POST /api/v1/loans/{loanId}/repayments/{repaymentId}/pay`
+
+- **Authority:** `loans:write`.  
+- **Responses:** **200** `ApiResponse<PayRepaymentResponse>`; **422** on business rule failure.
 
 ---
 
-### Endpoint 8: Initiate Transfer
+## Audit
 
-- **ID**: "api-payments-001"
-- **Method**: `POST`
-- **URL Path**: `/api/v1/transfers`
-- **Summary**: "Transfer funds between accounts"
-- **Description**: "Initiates an idempotent transfer. Requires Idempotency-Key header."
-- **Tags**: `["payments"]`
-- **Authenticated**: `true`
-- **Rate Limit**: "Strict (12 req/min)"
+### `GET /api/v1/audit/records`
 
-#### Parameters (`ApiParameter[]`)
-
-- **Name**: "Idempotency-Key"
-- **In**: "header"
-- **Type**: "uuid"
-- **Required**: `true`
-- **Description**: "Unique idempotency key"
-- **Example**: "550e8400-e29b-41d4-a716-446655440000"
-
-#### Request Body (`ApiRequestBody`)
-
-- **Content Type**: "application/json"
-- **Schema**:
-  ```json
-  {
-    "sourceAccountId": "uuid",
-    "targetAccountId": "uuid",
-    "amount": "100.00",
-    "currency": "USD"
-  }
-  ```
-
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 201
-- **Description**: "Transfer initiated"
-- **Schema**:
-  ```json
-  {
-    "data": {
-      "transferId": "uuid",
-      "status": "PENDING | PROCESSING | COMPLETED | FAILED"
-    }
-  }
-  ```
-
-- **Status**: 422
-- **Description**: "Insufficient funds or idempotency key conflict"
+- **Authority:** `audit:read`.  
+- **Query (optional):** `eventType`, `actorId`, `entityType`, `entityId`, `from`, `to` (instants), plus **`page`**, **`size`**.  
+- **Responses:** **200** `ApiResponse<AuditRecordsPageResponse>`.
 
 ---
 
-### Endpoint 9: Get Transfer Status
+## Notifications (monitoring)
 
-- **ID**: "api-payments-002"
-- **Method**: `GET`
-- **URL Path**: `/api/v1/transfers/{id}`
-- **Summary**: "Get transfer status"
-- **Description**: "Returns current status of a transfer."
-- **Tags**: `["payments"]`
-- **Authenticated**: `true`
-- **Rate Limit**: "30 req/min"
+### `GET /api/v1/notifications/monitoring/records`
 
-#### Parameters (`ApiParameter[]`)
+- **Authority:** `notifications:read`.  
+- **Query:** optional `status`, `channel`; pagination `page`, `size`, optional `sort` (default **`createdAt,DESC`**).  
+- **Responses:** **200** `ApiResponse<NotificationRecordsPageResponse>`.
 
-- **Name**: "id"
-- **In**: "path"
-- **Type**: "uuid"
-- **Required**: `true`
-- **Description**: "Transfer ID"
+### `GET /api/v1/notifications/monitoring/summary`
 
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 200
-- **Description**: "Transfer status"
-- **Schema**:
-  ```json
-  {
-    "data": {
-      "transferId": "uuid",
-      "sourceAccountId": "uuid",
-      "targetAccountId": "uuid",
-      "amount": "100.00",
-      "currency": "USD",
-      "status": "COMPLETED",
-      "createdAt": "2026-01-01T00:00:00Z"
-    }
-  }
-  ```
+- **Authority:** `notifications:read`.  
+- **Responses:** **200** `ApiResponse<NotificationSummaryResponse>`.
 
 ---
 
-### Endpoint 10: Apply for Loan
+## Operations
 
-- **ID**: "api-loans-001"
-- **Method**: `POST`
-- **URL Path**: `/api/v1/loans/apply`
-- **Summary**: "Apply for a loan"
-- **Description**: "Creates a loan application with requested amount and term."
-- **Tags**: `["loans"]`
-- **Authenticated**: `true`
-- **Rate Limit**: "Sensitive (6 req/min)"
+### `GET /actuator/health`
 
-#### Request Body (`ApiRequestBody`)
-
-- **Content Type**: "application/json"
-- **Schema**:
-  ```json
-  {
-    "accountId": "uuid",
-    "principal": "10000.00",
-    "currency": "USD",
-    "interestRate": "5.5",
-    "termMonths": 36
-  }
-  ```
-
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 201
-- **Description**: "Loan application created"
-- **Schema**:
-  ```json
-  {
-    "data": {
-      "loanId": "uuid",
-      "status": "PENDING"
-    }
-  }
-  ```
+- **Auth:** Unauthenticated in app configuration (dedicated filter chain).  
+- **Responses:** **200** `UP`; **503** `DOWN` when dependencies fail.  
+- **Production:** Do **not** expose publicly without VPC/security group controls; ALB target groups may call this path from private networks only.
 
 ---
 
-### Endpoint 11: Get Loan Schedule
+## OpenAPI and Swagger
 
-- **ID**: "api-loans-002"
-- **Method**: `GET`
-- **URL Path**: `/api/v1/loans/{id}/schedule`
-- **Summary**: "Get loan amortization schedule"
-- **Description**: "Returns the amortization schedule with installment details."
-- **Tags**: `["loans"]`
-- **Authenticated**: `true`
-- **Rate Limit**: "30 req/min"
+- **Swagger UI:** `/swagger-ui/` (and related springdoc paths).  
+- **OpenAPI JSON:** `/v3/api-docs` (springdoc).  
+- These URLs are **`permitAll`** — protect on AWS if the catalog should not be public.
 
-#### Parameters (`ApiParameter[]`)
+## Related documentation
 
-- **Name**: "id"
-- **In**: "path"
-- **Type**: "uuid"
-- **Required**: `true`
-- **Description**: "Loan ID"
-
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 200
-- **Description**: "Amortization schedule"
-- **Schema**:
-  ```json
-  {
-    "data": {
-      "loanId": "uuid",
-      "installments": [
-        {
-          "number": 1,
-          "dueDate": "2026-02-01",
-          "amount": "302.46",
-          "principal": "252.46",
-          "interest": "50.00",
-          "status": "PENDING"
-        }
-      ]
-    }
-  }
-  ```
-
----
-
-### Endpoint 12: Repay Loan
-
-- **ID**: "api-loans-003"
-- **Method**: `POST`
-- **URL Path**: `/api/v1/loans/{id}/repay`
-- **Summary**: "Record a loan repayment"
-- **Description**: "Records a payment towards a loan installment."
-- **Tags**: `["loans"]`
-- **Authenticated**: `true`
-- **Rate Limit**: "Sensitive (6 req/min)"
-
-#### Request Body (`ApiRequestBody`)
-
-- **Content Type**: "application/json"
-- **Schema**:
-  ```json
-  {
-    "installmentNumber": 1,
-    "amount": "302.46"
-  }
-  ```
-
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 200
-- **Description**: "Repayment recorded"
-- **Schema**:
-  ```json
-  {
-    "data": {
-      "repaymentId": "uuid",
-      "status": "COMPLETED",
-      "paidAt": "2026-02-01T12:00:00Z"
-    }
-  }
-  ```
-
----
-
-### Endpoint 13: Get Audit Events
-
-- **ID**: "api-audit-001"
-- **Method**: `GET`
-- **URL Path**: `/api/v1/audit/events`
-- **Summary**: "Query audit events"
-- **Description**: "Returns filtered audit records for compliance."
-- **Tags**: `["audit"]`
-- **Authenticated**: `true`
-- **Rate Limit**: "30 req/min"
-
-#### Parameters (`ApiParameter[]`)
-
-- **Name**: "actorId"
-- **In**: "query"
-- **Type**: "uuid"
-- **Required**: `false`
-- **Description**: "Filter by actor"
-
-- **Name**: "eventType"
-- **In**: "query"
-- **Type**: "string"
-- **Required**: `false**
-- **Description**: "Filter by event type"
-
-- **Name**: "entityId"
-- **In**: "query"
-- **Type**: "uuid"
-- **Required**: `false`
-- **Description**: "Filter by entity"
-
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 200
-- **Description**: "Audit records"
-- **Schema**:
-  ```json
-  {
-    "data": {
-      "content": [
-        {
-          "id": "uuid",
-          "eventType": "TransferCompletedEvent",
-          "actorId": "uuid",
-          "entityType": "Transfer",
-          "entityId": "uuid",
-          "payload": {},
-          "createdAt": "2026-01-01T00:00:00Z"
-        }
-      ]
-    }
-  }
-  ```
-
----
-
-### Endpoint 14: JWKS
-
-- **ID**: "api-iam-005"
-- **Method**: `GET`
-- **URL Path**: `/.well-known/jwks.json`
-- **Summary**: "Get JWT public keys"
-- **Description**: "Returns JSON Web Key Set for JWT validation."
-- **Tags**: `["iam"]`
-- **Authenticated**: `false`
-- **Rate Limit**: "N/A"
-
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 200
-- **Description**: "JWKS"
-- **Schema**:
-  ```json
-  {
-    "keys": [
-      {
-        "kty": "RSA",
-        "use": "sig",
-        "alg": "RS256",
-        "n": "...",
-        "e": "AQAB"
-      }
-    ]
-  }
-  ```
-
----
-
-### Endpoint 15: Health Check
-
-- **ID**: "api-health-001"
-- **Method**: `GET`
-- **URL Path**: `/actuator/health`
-- **Summary**: "Application health"
-- **Description**: "Returns health status of application and dependencies."
-- **Tags**: `["actuator"]`
-- **Authenticated**: `false`
-- **Rate Limit**: "N/A"
-
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 200
-- **Description**: "Health status"
-- **Schema**:
-  ```json
-  {
-    "status": "UP",
-    "components": {
-      "db": { "status": "UP" },
-      "redis": { "status": "UP" }
-    }
-  }
-  ```
-
----
-
-### Endpoint 16: Prometheus Metrics
-
-- **ID**: "api-metrics-001"
-- **Method**: `GET`
-- **URL Path**: `/actuator/prometheus`
-- **Summary**: "Prometheus metrics endpoint"
-- **Description**: "Exposes metrics in Prometheus format."
-- **Tags**: `["actuator"]`
-- **Authenticated**: `false`
-- **Rate Limit**: "N/A"
-
-#### Responses (`ApiResponse[]`)
-
-- **Status**: 200
-- **Description**: "Prometheus metrics"
+- [Project features](ProjectFeatures.md) — feature-level description  
+- [InfrastructureModel.md](InfrastructureModel.md) — nginx and TLS story  
+- [Project links](ProjectLinks.md) — placeholder public Swagger URL  

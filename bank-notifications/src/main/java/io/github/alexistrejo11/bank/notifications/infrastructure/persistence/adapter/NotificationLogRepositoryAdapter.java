@@ -7,7 +7,7 @@ import io.github.alexistrejo11.bank.notifications.domain.model.NotificationSumma
 import io.github.alexistrejo11.bank.notifications.domain.port.out.NotificationLogRepository;
 import io.github.alexistrejo11.bank.notifications.infrastructure.persistence.entity.NotificationEntity;
 import io.github.alexistrejo11.bank.notifications.infrastructure.persistence.repository.NotificationJpaRepository;
-import io.github.alexistrejo11.bank.shared.page.PageResult;
+import io.github.alexistrejo11.bank.shared.shared_kernel.page.PageResult;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -35,22 +35,18 @@ public class NotificationLogRepositoryAdapter implements NotificationLogReposito
 		Page<NotificationEntity> springPage;
 		if (filters.status() != null && filters.channel() != null) {
 			springPage = jpaRepository.findByStatusAndChannel(filters.status(), filters.channel(), pageable);
-		}
-		else if (filters.status() != null) {
+		} else if (filters.status() != null) {
 			springPage = jpaRepository.findByStatus(filters.status(), pageable);
-		}
-		else if (filters.channel() != null) {
+		} else if (filters.channel() != null) {
 			springPage = jpaRepository.findByChannel(filters.channel(), pageable);
-		}
-		else {
+		} else {
 			springPage = jpaRepository.findAll(pageable);
 		}
 		return new PageResult<>(
 				springPage.getContent().stream().map(this::toRecord).toList(),
 				springPage.getTotalElements(),
 				springPage.getNumber(),
-				springPage.getSize()
-		);
+				springPage.getSize());
 	}
 
 	@Override
@@ -72,22 +68,22 @@ public class NotificationLogRepositoryAdapter implements NotificationLogReposito
 	}
 
 	private NotificationEntity toEntity(NotificationLogRecord r) {
-		return new NotificationEntity(
-				r.id(),
-				r.userId(),
-				r.channel(),
-				r.templateKey(),
-				r.status(),
-				r.sourceEventType(),
-				r.subject(),
-				r.bodyHtml(),
-				r.recipientHint(),
-				r.metadataJson(),
-				r.errorMessage(),
-				r.createdAt(),
-				r.updatedAt(),
-				r.dispatchedAt()
-		);
+		return NotificationEntity.builder()
+				.id(r.id())
+				.userId(r.userId())
+				.channel(r.channel())
+				.templateKey(r.templateKey())
+				.status(r.status())
+				.sourceEventType(r.sourceEventType())
+				.subject(r.subject())
+				.bodyHtml(r.bodyHtml())
+				.recipientHint(r.recipientHint())
+				.metadataJson(r.metadataJson())
+				.errorMessage(r.errorMessage())
+				.createdAt(r.createdAt())
+				.updatedAt(r.updatedAt())
+				.dispatchedAt(r.dispatchedAt())
+				.build();
 	}
 
 	private NotificationLogRecord toRecord(NotificationEntity e) {
@@ -105,7 +101,6 @@ public class NotificationLogRepositoryAdapter implements NotificationLogReposito
 				e.getErrorMessage(),
 				e.getCreatedAt(),
 				e.getUpdatedAt(),
-				e.getDispatchedAt()
-		);
+				e.getDispatchedAt());
 	}
 }

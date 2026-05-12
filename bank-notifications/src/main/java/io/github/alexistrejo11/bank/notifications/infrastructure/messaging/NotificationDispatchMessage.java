@@ -1,6 +1,6 @@
 package io.github.alexistrejo11.bank.notifications.infrastructure.messaging;
 
-import io.github.alexistrejo11.bank.notifications.domain.command.DispatchNotificationCommand;
+import io.github.alexistrejo11.bank.notifications.application.command.DispatchNotificationCommand;
 import io.github.alexistrejo11.bank.notifications.domain.model.GenericEmailContent;
 import java.util.Map;
 import java.util.UUID;

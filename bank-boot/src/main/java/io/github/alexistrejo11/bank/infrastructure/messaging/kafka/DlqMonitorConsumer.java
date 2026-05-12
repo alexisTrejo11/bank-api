@@ -1,6 +1,6 @@
 package io.github.alexistrejo11.bank.infrastructure.messaging.kafka;
 
-import io.github.alexistrejo11.bank.shared.messaging.BankKafkaTopics;
+import io.github.alexistrejo11.bank.shared.shared_kernel.messaging.BankKafkaTopics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
@@ -14,7 +14,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Observes DLQ messages: ERROR log + in-memory buffer for {@code GET /admin/dlq}.
+ * Observes DLQ messages: ERROR log + in-memory buffer for
+ * {@code GET /admin/dlq}.
  */
 @Component
 @ConditionalOnProperty(prefix = "bank.kafka", name = "enabled", havingValue = "true")
@@ -30,11 +31,7 @@ public class DlqMonitorConsumer {
 		this.meterRegistry = meterRegistry;
 	}
 
-	@KafkaListener(
-			topics = BankKafkaTopics.DLQ,
-			groupId = "dlq-monitor-cg",
-			containerFactory = "dlqStringKafkaListenerContainerFactory"
-	)
+	@KafkaListener(topics = BankKafkaTopics.DLQ, groupId = "dlq-monitor-cg", containerFactory = "dlqStringKafkaListenerContainerFactory")
 	public void onDlq(ConsumerRecord<String, String> record) {
 		String originalTopic = headerUtf8(record, "kafka_dlt-original-topic").orElse("unknown");
 		String err = headerUtf8(record, "kafka_dlt-exception-message").orElse("unknown");
@@ -48,8 +45,7 @@ public class DlqMonitorConsumer {
 				originalTopic,
 				group,
 				err,
-				payload
-		);
+				payload);
 		Counter.builder("bank.dlq.messages.total")
 				.tag("originalTopic", originalTopic)
 				.register(meterRegistry)

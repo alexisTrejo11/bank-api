@@ -4,14 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.github.alexistrejo11.bank.loans.domain.command.OriginateLoanCommand;
+import io.github.alexistrejo11.bank.loans.application.command.OriginateLoanCommand;
 import io.github.alexistrejo11.bank.loans.domain.model.LoanAggregate;
 import io.github.alexistrejo11.bank.loans.domain.model.LoanStatus;
 import io.github.alexistrejo11.bank.loans.domain.model.RepaymentStatus;
-import io.github.alexistrejo11.bank.loans.domain.port.out.CustomerCheckingAccountPort;
-import io.github.alexistrejo11.bank.loans.domain.port.out.CustomerCheckingAccountPort.OwnedCheckingAccount;
-import io.github.alexistrejo11.bank.loans.domain.port.out.LoanRepository;
-import io.github.alexistrejo11.bank.shared.ids.UserId;
+import io.github.alexistrejo11.bank.loans.domain.repository.CustomerCheckingAccountRepository;
+import io.github.alexistrejo11.bank.loans.domain.repository.CustomerCheckingAccountRepository.OwnedCheckingAccount;
+import io.github.alexistrejo11.bank.loans.domain.repository.LoanRepository;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.UserId;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,7 +30,7 @@ class OriginateLoanHandlerTest {
 	LoanRepository loanRepository;
 
 	@Mock
-	CustomerCheckingAccountPort checkingAccountPort;
+  CustomerCheckingAccountRepository checkingAccountPort;
 
 	@InjectMocks
 	OriginateLoanHandler handler;

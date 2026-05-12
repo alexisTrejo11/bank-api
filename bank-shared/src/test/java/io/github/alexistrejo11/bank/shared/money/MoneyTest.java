@@ -3,12 +3,14 @@ package io.github.alexistrejo11.bank.shared.money;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.github.alexistrejo11.bank.shared.exception.InsufficientFundsException;
-import io.github.alexistrejo11.bank.shared.exception.InvalidMoneyAmountException;
 import java.math.BigDecimal;
 import java.util.Currency;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.alexistrejo11.bank.shared.shared_kernel.exception.InsufficientFundsException;
+import io.github.alexistrejo11.bank.shared.shared_kernel.exception.InvalidMoneyAmountException;
+import io.github.alexistrejo11.bank.shared.shared_kernel.money.Money;
 
 class MoneyTest {
 

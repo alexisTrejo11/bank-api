@@ -1,14 +1,15 @@
 package io.github.alexistrejo11.bank.audit.domain.service;
 
-import io.github.alexistrejo11.bank.shared.event.BankDomainEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanApprovedEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanDisbursedEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanPaidOffEvent;
-import io.github.alexistrejo11.bank.shared.event.LoanRepaymentCompletedEvent;
-import io.github.alexistrejo11.bank.shared.event.TransferCompletedEvent;
-import io.github.alexistrejo11.bank.shared.event.TransferFailedEvent;
-import io.github.alexistrejo11.bank.shared.event.TransferReversedEvent;
 import java.util.UUID;
+
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.BankDomainEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanApprovedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanDisbursedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanPaidOffEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.LoanRepaymentCompletedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferCompletedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferFailedEvent;
+import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferReversedEvent;
 
 public final class AuditDomainEventMapper {
 

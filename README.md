@@ -73,6 +73,7 @@ bank-api/
 ├── bank-loans/           # Loans & Amortization
 ├── bank-notifications/   # Email & SMS dispatch
 ├── bank-audit/           # Immutable audit records
+├── bank-config/          # Cross-cutting security & shared web config
 ├── bank-boot/            # Spring Boot application
 ├── docs/                 # Documentation
 │   ├── project/          # Project documentation
@@ -89,9 +90,9 @@ Each module follows identical package structure:
 
 ```
 {module}/
-├── api/           → REST controllers, DTOs, mappers
+├── presentation/   → REST controllers, DTOs, mappers (some modules may still say api/ in older docs)
 ├── application/   → Command/Query handlers
-├── domain/        → Entities, value objects, ports
+├── domain/          → Entities, value objects, ports
 └── infrastructure/→ JPA repositories, event listeners, adapters
 ```
 
@@ -107,63 +108,36 @@ Each module follows identical package structure:
 
 ## API Endpoints
 
-### Authentication (IAM)
+All versioned REST routes live under **`/api/v1`**. Full reference (methods, bodies, headers such as **`Idempotency-Key`**, authorities, and response patterns) is maintained in **[docs/project/APISchema.md](docs/project/APISchema.md)**.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/auth/register` | Register new user |
-| POST | `/api/v1/auth/login` | Login (get JWT) |
-| POST | `/api/v1/auth/refresh` | Refresh access token |
-| POST | `/api/v1/auth/logout` | Logout (blocklist JWT) |
-| GET | `/.well-known/jwks.json` | JWT public keys |
-
-### Accounts
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/accounts` | Create account |
-| GET | `/api/v1/accounts/{id}` | Get account |
-| GET | `/api/v1/accounts/{id}/balance` | Get derived balance |
-| GET | `/api/v1/accounts/{id}/ledger` | Get ledger entries |
-
-### Payments
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/transfers` | Initiate transfer (idempotent) |
-| GET | `/api/v1/transfers/{id}` | Get transfer status |
-
-### Loans
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/loans/apply` | Apply for loan |
-| GET | `/api/v1/loans/{id}` | Get loan details |
-| GET | `/api/v1/loans/{id}/schedule` | Get amortization schedule |
-| POST | `/api/v1/loans/{id}/repay` | Record repayment |
-
-### Audit
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v1/audit/events` | Query audit records |
+| Area | Examples |
+|------|-----------|
+| Auth | `POST .../auth/register`, `login`, `refresh`, `logout`, `GET .../auth/me` |
+| Accounts | `POST .../accounts`, `GET .../accounts/{id}/balance`, `.../ledger` |
+| Payments | `POST .../payments/transfers`, `POST .../payments/transfers/{id}/reverse` |
+| Loans | `POST .../loans`, `POST .../loans/{id}/approve`, `GET .../loans/{id}`, pay repayment |
+| Audit | `GET .../audit/records` |
+| Notifications | `GET .../notifications/monitoring/records`, `.../summary` |
 
 ## Documentation
 
 ### Project Documentation (`docs/project/`)
 
+Start here: **[docs/project/README.md](docs/project/README.md)** — hub page linking all human-readable docs. Machine-readable YAML for tooling lives in **[docs/project/source/](docs/project/source/)** (schema: [`TypescriptSchema.md`](docs/project/source/TypescriptSchema.md)).
+
 | Document | Description |
 |----------|-------------|
-| [ProjectMetadata.md](docs/project/ProjectMetadata.md) | Project metadata, tags, owner |
-| [ProjectOverview.md](docs/project/ProjectOverview.md) | Problem statement, solution, key metrics |
-| [ProjectFeatures.md](docs/project/ProjectFeatures.md) | 11 features with details |
-| [ProjectArchitectureModel.md](docs/project/ProjectArchitectureModel.md) | Layers, patterns, diagrams, data flows |
-| [InfrastructureModel.md](docs/project/InfrastructureModel.md) | Deployment layers, Docker, cloud services |
-| [APISchema.md](docs/project/APISchema.md) | API endpoints with schemas |
-| [ProjectCodeShowCase.md](docs/project/ProjectCodeShowCase.md) | Code examples |
-| [ProjectMetric.md](docs/project/ProjectMetric.md) | Project metrics |
-| [ProjectLinks.md](docs/project/ProjectLinks.md) | External links |
-| [MediaGallerySection.md](docs/project/MediaGallerySection.md) | Visual documentation |
+| [README.md](docs/project/README.md) | Documentation hub and conventions |
+| [ProjectMetadata.md](docs/project/ProjectMetadata.md) | Version, status, tech stack, modules |
+| [ProjectOverview.md](docs/project/ProjectOverview.md) | Problem statement, solution, metrics |
+| [ProjectFeatures.md](docs/project/ProjectFeatures.md) | Nine feature areas with status and highlights |
+| [ProjectArchitectureModel.md](docs/project/ProjectArchitectureModel.md) | Layers, patterns, AWS-shaped diagram, data flows, ADRs |
+| [InfrastructureModel.md](docs/project/InfrastructureModel.md) | Local, Docker Compose, AWS, Dockerfile |
+| [APISchema.md](docs/project/APISchema.md) | REST API reference |
+| [ProjectCodeShowCase.md](docs/project/ProjectCodeShowCase.md) | Annotated code excerpts |
+| [ProjectMetric.md](docs/project/ProjectMetric.md) | Product and infra metrics |
+| [ProjectLinks.md](docs/project/ProjectLinks.md) | Repository, docs tree, demo placeholders |
+| [MediaGallerySection.md](docs/project/MediaGallerySection.md) | Screenshot / diagram placeholders |
 
 ### Configuration Guides
 
@@ -183,7 +157,7 @@ Each module follows identical package structure:
 | Security | Spring Security 6 + JWT RS256 |
 | Database | PostgreSQL 16 / H2 (dev) |
 | Cache | Redis 7 |
-| Messaging | Kafka / Redpanda |
+| Messaging | Kafka (Confluent in Compose; MSK on AWS) |
 | API Docs | SpringDoc OpenAPI |
 | Metrics | Micrometer + Prometheus |
 | Logs | Logback JSON → Elasticsearch → Kibana |

@@ -1,9 +1,9 @@
 package io.github.alexistrejo11.bank.audit.application.handler.query;
 
+import io.github.alexistrejo11.bank.audit.application.query.AuditRecordFilters;
 import io.github.alexistrejo11.bank.audit.domain.model.AuditRecord;
-import io.github.alexistrejo11.bank.audit.domain.model.AuditRecordFilters;
-import io.github.alexistrejo11.bank.audit.domain.port.out.AuditRecordRepository;
-import io.github.alexistrejo11.bank.shared.page.PageResult;
+import io.github.alexistrejo11.bank.audit.domain.repository.AuditRecordRepository;
+import io.github.alexistrejo11.bank.shared.shared_kernel.page.PageResult;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 

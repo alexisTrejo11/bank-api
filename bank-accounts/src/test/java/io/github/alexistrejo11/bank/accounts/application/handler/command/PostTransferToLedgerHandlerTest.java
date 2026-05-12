@@ -6,15 +6,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.github.alexistrejo11.bank.accounts.domain.command.PostTransferToLedgerCommand;
+import io.github.alexistrejo11.bank.accounts.application.command.PostTransferToLedgerCommand;
 import io.github.alexistrejo11.bank.accounts.domain.exception.AccountNotFoundException;
 import io.github.alexistrejo11.bank.accounts.domain.exception.InvalidTransferException;
 import io.github.alexistrejo11.bank.accounts.domain.model.AccountStatus;
-import io.github.alexistrejo11.bank.accounts.domain.model.AccountSummary;
+import io.github.alexistrejo11.bank.accounts.domain.model.BankAccount;
 import io.github.alexistrejo11.bank.accounts.domain.model.AccountType;
-import io.github.alexistrejo11.bank.accounts.domain.port.out.AccountRepository;
-import io.github.alexistrejo11.bank.accounts.domain.port.out.LedgerEntryRepository;
-import io.github.alexistrejo11.bank.shared.ids.AccountId;
+import java.time.Instant;
+import io.github.alexistrejo11.bank.accounts.domain.repository.AccountRepository;
+import io.github.alexistrejo11.bank.accounts.domain.repository.LedgerEntryRepository;
+import io.github.alexistrejo11.bank.shared.shared_kernel.ids.AccountId;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,8 +41,11 @@ class PostTransferToLedgerHandlerTest {
 	void execute_savesDebitAndCredit() {
 		UUID fromId = UUID.randomUUID();
 		UUID toId = UUID.randomUUID();
-		AccountSummary from = new AccountSummary(fromId, UUID.randomUUID(), AccountType.CHECKING, "USD", AccountStatus.ACTIVE);
-		AccountSummary to = new AccountSummary(toId, UUID.randomUUID(), AccountType.CHECKING, "USD", AccountStatus.ACTIVE);
+		Instant now = Instant.now();
+		BankAccount from = new BankAccount(
+				fromId, UUID.randomUUID(), AccountType.CHECKING, "USD", AccountStatus.ACTIVE, now, now, null);
+		BankAccount to = new BankAccount(
+				toId, UUID.randomUUID(), AccountType.CHECKING, "USD", AccountStatus.ACTIVE, now, now, null);
 		when(accountRepository.findById(fromId)).thenReturn(Optional.of(from));
 		when(accountRepository.findById(toId)).thenReturn(Optional.of(to));
 
@@ -51,8 +55,7 @@ class PostTransferToLedgerHandlerTest {
 				new BigDecimal("25.50"),
 				"usd",
 				"TRANSFER",
-				UUID.randomUUID()
-		));
+				UUID.randomUUID()));
 
 		verify(ledgerEntryRepository, times(1)).savePair(any(), any());
 	}
@@ -65,8 +68,7 @@ class PostTransferToLedgerHandlerTest {
 				BigDecimal.ZERO,
 				"USD",
 				"TRANSFER",
-				UUID.randomUUID()
-		))).isInstanceOf(InvalidTransferException.class);
+				UUID.randomUUID()))).isInstanceOf(InvalidTransferException.class);
 	}
 
 	@Test
@@ -79,7 +81,6 @@ class PostTransferToLedgerHandlerTest {
 				new BigDecimal("1"),
 				"USD",
 				"TRANSFER",
-				UUID.randomUUID()
-		))).isInstanceOf(AccountNotFoundException.class);
+				UUID.randomUUID()))).isInstanceOf(AccountNotFoundException.class);
 	}
 }
