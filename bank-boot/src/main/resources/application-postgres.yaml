@@ -6,9 +6,9 @@ spring:
   flyway:
     locations: classpath:db/migration,classpath:db/postgresql/migration
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/at_bank}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:fedoraadmin}
+    url: ${SPRING_DATASOURCE_URL:?Set SPRING_DATASOURCE_URL in .env}
+    username: ${SPRING_DATASOURCE_USERNAME:?Set SPRING_DATASOURCE_USERNAME in .env}
+    password: ${SPRING_DATASOURCE_PASSWORD:?Set SPRING_DATASOURCE_PASSWORD in .env}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

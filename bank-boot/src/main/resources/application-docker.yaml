@@ -1,25 +1,25 @@
-# Docker Compose stack — provide all values via environment / .env (see .env.example).
+# Docker / deploy profile — all values from .env (see .env.example).
 spring:
   config:
     activate:
       on-profile: docker
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:?Set SPRING_DATASOURCE_URL in .env}
+    username: ${SPRING_DATASOURCE_USERNAME:?Set SPRING_DATASOURCE_USERNAME in .env}
+    password: ${SPRING_DATASOURCE_PASSWORD:?Set SPRING_DATASOURCE_PASSWORD in .env}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
+      host: ${SPRING_DATA_REDIS_HOST:?Set SPRING_DATA_REDIS_HOST in .env}
+      port: ${SPRING_DATA_REDIS_PORT:?Set SPRING_DATA_REDIS_PORT in .env}
       password: ${SPRING_DATA_REDIS_PASSWORD:}
   kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:?Set SPRING_KAFKA_BOOTSTRAP_SERVERS in .env}
     consumer:
-      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:bank-notifications}
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:?Set SPRING_KAFKA_CONSUMER_GROUP_ID in .env}
       auto-offset-reset: earliest
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -31,9 +31,16 @@ management:
       enabled: true
 
 bank:
-  # Phase 8 domain-event pipeline: set BANK_KAFKA_ENABLED=true when handlers publish via Kafka.
+  logging:
+    file:
+      directory: ${BANK_LOGGING_DIRECTORY:/app/logs}
+    loki:
+      url: ${LOKI_URL:}
+      enabled: ${BANK_LOGGING_LOKI_ENABLED:false}
+    logstash:
+      enabled: ${BANK_LOGGING_LOGSTASH_ENABLED:false}
   kafka:
-    enabled: ${BANK_KAFKA_ENABLED:false}
+    enabled: ${BANK_KAFKA_ENABLED:?Set BANK_KAFKA_ENABLED in .env}
   rate-limiting:
     enabled: true
     fail-open: true
@@ -43,6 +50,6 @@ bank:
   payments:
     redis-idempotency: true
   notifications:
-    dispatch-mode: kafka
+    dispatch-mode: ${BANK_NOTIFICATIONS_DISPATCH_MODE:direct}
     kafka:
-      enabled: true
+      enabled: ${BANK_KAFKA_ENABLED:false}

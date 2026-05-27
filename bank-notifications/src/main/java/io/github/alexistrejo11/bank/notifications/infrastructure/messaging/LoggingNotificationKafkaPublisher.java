@@ -18,7 +18,7 @@ public class LoggingNotificationKafkaPublisher implements NotificationKafkaPubli
 
 	@Override
 	public void publish(NotificationKafkaEnvelope envelope) {
-		log.info(
+		log.debug(
 				"kafka_notification_stub notificationId={} sourceEventType={} channel={} subject={} summary={}",
 				envelope.notificationId(),
 				envelope.sourceEventType(),

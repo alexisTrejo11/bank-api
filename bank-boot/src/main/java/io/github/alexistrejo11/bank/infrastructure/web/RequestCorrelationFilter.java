@@ -28,16 +28,47 @@ public class RequestCorrelationFilter extends OncePerRequestFilter {
 				.orElseGet(() -> UUID.randomUUID().toString());
 		String requestId = Optional.ofNullable(request.getHeader("X-Request-Id")).filter(s -> !s.isBlank())
 				.orElse(traceId);
+		String spanId = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+		String module = resolveModule(pathWithinApplication(request));
 		MDC.put("traceId", traceId);
 		MDC.put("requestId", requestId);
-		MDC.put("module", "bank");
+		MDC.put("spanId", spanId);
+		MDC.put("module", module);
+		response.setHeader("X-Trace-Id", traceId);
+		response.setHeader("X-Request-Id", requestId);
 		try {
 			filterChain.doFilter(request, response);
 		}
 		finally {
 			MDC.remove("traceId");
 			MDC.remove("requestId");
+			MDC.remove("spanId");
 			MDC.remove("module");
 		}
+	}
+
+	static String resolveModule(String path) {
+		if (path == null || path.isBlank()) {
+			return "bank";
+		}
+		if (path.startsWith("/api/v1/")) {
+			String rest = path.substring("/api/v1/".length());
+			int slash = rest.indexOf('/');
+			String segment = slash > 0 ? rest.substring(0, slash) : rest;
+			return segment.isBlank() ? "api" : segment;
+		}
+		if (path.startsWith("/actuator")) {
+			return "actuator";
+		}
+		return "bank";
+	}
+
+	private static String pathWithinApplication(HttpServletRequest request) {
+		String uri = request.getRequestURI();
+		String context = request.getContextPath();
+		if (context != null && !context.isEmpty() && uri.startsWith(context)) {
+			return uri.substring(context.length());
+		}
+		return uri != null ? uri : "";
 	}
 }

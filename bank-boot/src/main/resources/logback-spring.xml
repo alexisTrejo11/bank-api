@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+	<springProperty name="LOG_DIR" source="bank.logging.file.directory" defaultValue="logs"/>
+	<springProperty name="MAX_FILE_SIZE" source="bank.logging.file.max-file-size-mb" defaultValue="50"/>
+	<springProperty name="MAX_HISTORY" source="bank.logging.file.max-history-days" defaultValue="14"/>
+	<springProperty name="TOTAL_SIZE_CAP" source="bank.logging.file.total-size-cap-mb" defaultValue="500"/>
+	<springProperty name="LOKI_URL" source="bank.logging.loki.url" defaultValue=""/>
+	<springProperty name="LOKI_ENABLED" source="bank.logging.loki.enabled" defaultValue="false"/>
+	<springProperty name="LOGSTASH_ENABLED" source="bank.logging.logstash.enabled" defaultValue="false"/>
+	<springProperty name="LOGSTASH_HOST" source="bank.logging.logstash.host" defaultValue="logstash"/>
+	<springProperty name="LOGSTASH_PORT" source="bank.logging.logstash.port" defaultValue="5044"/>
+
+	<property name="ROLL_MAX_FILE" value="${MAX_FILE_SIZE}MB"/>
+	<property name="ROLL_TOTAL_CAP" value="${TOTAL_SIZE_CAP}MB"/>
+
+	<appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder class="net.logstash.logback.encoder.LogstashEncoder">
+			<includeMdcKeyName>traceId</includeMdcKeyName>
+			<includeMdcKeyName>spanId</includeMdcKeyName>
+			<includeMdcKeyName>requestId</includeMdcKeyName>
+			<includeMdcKeyName>userId</includeMdcKeyName>
+			<includeMdcKeyName>module</includeMdcKeyName>
+		</encoder>
+	</appender>
+
+	<appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_DIR}/audit.json</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_DIR}/audit-%d{yyyy-MM-dd}.%i.json.gz</fileNamePattern>
+			<maxFileSize>${ROLL_MAX_FILE}</maxFileSize>
+			<maxHistory>${MAX_HISTORY}</maxHistory>
+			<totalSizeCap>${ROLL_TOTAL_CAP}</totalSizeCap>
+		</rollingPolicy>
+		<encoder class="net.logstash.logback.encoder.LogstashEncoder">
+			<includeMdcKeyName>traceId</includeMdcKeyName>
+			<includeMdcKeyName>spanId</includeMdcKeyName>
+			<includeMdcKeyName>requestId</includeMdcKeyName>
+			<includeMdcKeyName>userId</includeMdcKeyName>
+			<includeMdcKeyName>module</includeMdcKeyName>
+		</encoder>
+	</appender>
+
+	<appender name="ACCESS_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_DIR}/access.json</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_DIR}/access-%d{yyyy-MM-dd}.%i.json.gz</fileNamePattern>
+			<maxFileSize>${ROLL_MAX_FILE}</maxFileSize>
+			<maxHistory>${MAX_HISTORY}</maxHistory>
+			<totalSizeCap>${ROLL_TOTAL_CAP}</totalSizeCap>
+		</rollingPolicy>
+		<encoder class="net.logstash.logback.encoder.LogstashEncoder">
+			<includeMdcKeyName>traceId</includeMdcKeyName>
+			<includeMdcKeyName>spanId</includeMdcKeyName>
+			<includeMdcKeyName>requestId</includeMdcKeyName>
+			<includeMdcKeyName>userId</includeMdcKeyName>
+			<includeMdcKeyName>module</includeMdcKeyName>
+		</encoder>
+	</appender>
+
+	<if condition='property("LOKI_ENABLED").equalsIgnoreCase("true") &amp;&amp; !property("LOKI_URL").isBlank()'>
+		<then>
+			<appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+				<http>
+					<url>${LOKI_URL}</url>
+				</http>
+				<labels>
+					app = bank
+					log_type = application
+				</labels>
+				<message>
+					<pattern>{"level":"%level","logger":"%logger","message":"%message","traceId":"%mdc{traceId:-}","userId":"%mdc{userId:-}","module":"%mdc{module:-}"}</pattern>
+				</message>
+				<verbose>false</verbose>
+			</appender>
+		</then>
+	</if>
+
+	<if condition='property("LOGSTASH_ENABLED").equalsIgnoreCase("true")'>
+		<then>
+			<appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+				<destination>${LOGSTASH_HOST}:${LOGSTASH_PORT}</destination>
+				<encoder class="net.logstash.logback.encoder.LogstashEncoder">
+					<includeMdcKeyName>traceId</includeMdcKeyName>
+					<includeMdcKeyName>spanId</includeMdcKeyName>
+					<includeMdcKeyName>requestId</includeMdcKeyName>
+					<includeMdcKeyName>userId</includeMdcKeyName>
+					<includeMdcKeyName>module</includeMdcKeyName>
+				</encoder>
+				<reconnectionDelay>5 seconds</reconnectionDelay>
+			</appender>
+		</then>
+	</if>
+
+	<logger name="AUDIT" level="INFO" additivity="false">
+		<appender-ref ref="AUDIT_FILE"/>
+	</logger>
+
+	<logger name="ACCESS" level="INFO" additivity="false">
+		<appender-ref ref="ACCESS_FILE"/>
+	</logger>
+
+	<root level="INFO">
+		<appender-ref ref="CONSOLE_JSON"/>
+		<if condition='property("LOKI_ENABLED").equalsIgnoreCase("true") &amp;&amp; !property("LOKI_URL").isBlank()'>
+			<then>
+				<appender-ref ref="LOKI"/>
+			</then>
+		</if>
+		<if condition='property("LOGSTASH_ENABLED").equalsIgnoreCase("true")'>
+			<then>
+				<appender-ref ref="LOGSTASH"/>
+			</then>
+		</if>
+	</root>
+</configuration>

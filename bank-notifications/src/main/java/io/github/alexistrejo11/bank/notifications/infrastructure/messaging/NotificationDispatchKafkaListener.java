@@ -36,7 +36,7 @@ public class NotificationDispatchKafkaListener {
 			@Header(KafkaHeaders.OFFSET) long offset) {
 		try {
 			NotificationDispatchMessage msg = objectMapper.readValue(payload, NotificationDispatchMessage.class);
-			log.info(
+			log.debug(
 					"kafka_notification_consumed sourceEventType={} partition={} offset={}",
 					msg.sourceEventType(),
 					partition,

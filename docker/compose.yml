@@ -1,0 +1,24 @@
+# Deploy / VPS — application container only.
+# Postgres, Redis, and Kafka must be reachable via variables in .env (see .env.example).
+#
+# From repository root (--env-file loads repo-root .env for ${VAR} substitution):
+#   ./docker/validate-env.sh app
+#   docker compose --env-file .env -f docker/compose.yml up -d --build
+#
+# API: http://localhost:${APP_HTTP_PORT} (set in .env)
+
+name: bank-api
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: bank-api:${BANK_API_IMAGE_TAG:?Set BANK_API_IMAGE_TAG in .env}
+    env_file:
+      - ../.env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "${APP_HTTP_PORT:?Set APP_HTTP_PORT in .env}:8080"
+    restart: unless-stopped

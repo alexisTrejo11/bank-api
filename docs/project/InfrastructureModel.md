@@ -6,7 +6,7 @@ Human-readable infrastructure documentation derived from [`source/ProjectInfrast
 
 | Metric | Value | Detail |
 |--------|--------|--------|
-| Docker Compose services | **11** | zookeeper, kafka, postgres, redis, elasticsearch, logstash, kibana, prometheus, grafana, app, nginx |
+| Docker Compose services (local) | **10+** | zookeeper, kafka, postgres, redis, prometheus, grafana, loki, promtail, app, nginx (+ optional ELK profile) |
 | Container healthcheck | **1×** `GET /actuator/health` | Dockerfile `HEALTHCHECK` — map to ECS / ALB target group health checks |
 | Spring profiles | **4+** | default, test, postgres, docker; add `aws` per account when needed |
 | Hikari max pool (default) | **10** | Override via Spring datasource properties |
@@ -48,7 +48,8 @@ Human-readable infrastructure documentation derived from [`source/ProjectInfrast
 | **ZooKeeper + Kafka 7.5** | Confluent images; broker `kafka:9092` on internal network |
 | **nginx 1.25** | Reverse proxy **port 80 → `app:8080`**; `30 r/s` zone on `/api/` |
 | **Prometheus + Grafana** | Metrics; dashboards under `infra/grafana/provisioning` |
-| **Elasticsearch + Logstash + Kibana** | ELK 8.x; Logstash mounts `infra/logstash/pipeline` |
+| **Loki + Promtail** | App compliance files under `logs/` + JSON stdout; Grafana explores logs |
+| **Elasticsearch + Logstash + Kibana** | Optional Compose profile `elk`; pipeline filters noisy levels |
 
 ### 3. AWS production (target)
 
@@ -63,7 +64,7 @@ Human-readable infrastructure documentation derived from [`source/ProjectInfrast
 
 ## Dockerfile reference (`bank-api` multi-stage)
 
-The canonical file is **[Dockerfile](../../Dockerfile)** at the repository root. Summary:
+The canonical file is **[docker/Dockerfile](../../docker/Dockerfile)**. Summary:
 
 - **Builder:** `eclipse-temurin:21-jdk-alpine`, copies `mvnw` and module `pom.xml` files for dependency prefetch, then full `COPY . .`, then `./mvnw -pl bank-boot -am package -DskipTests`.  
 - **Runtime:** `eclipse-temurin:21-jre-alpine`, non-root user `bank`, `JAVA_OPTS` defaults to **ZGC**, exposes **8080**, **HEALTHCHECK** curls `/actuator/health`.  

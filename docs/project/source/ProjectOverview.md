@@ -134,7 +134,7 @@ metrics:
 
 ## Notes
 
-- **Danger**: `docker-compose.yml` exposes nginx on **port 80 (HTTP)** with `limit_req` — there is **no TLS** in that file. For AWS, terminate TLS at the ALB with ACM; do not copy the Compose TLS story to production verbatim.
+- **Danger**: `docker/compose.local.yml` exposes nginx on **port 80 (HTTP)** with `limit_req` — there is **no TLS** in that file. For AWS, terminate TLS at the ALB with ACM; do not copy the Compose TLS story to production verbatim.
 - **Danger**: Global `failOpen` on rate limiting favors availability when Redis is sick; document whether you ever want `failOpen: false` for fraud-sensitive endpoints.
 - **Good**: `SecurityConfig` maps each banking route to fine-grained authorities (`accounts:read`, `payments:write`, etc.), which transfers cleanly to IAM-style policies or Cognito groups later.
 - **Missing**: All `cdn.PLACEHOLDER.example` URLs are fictional — upload real assets to S3 and invalidate CloudFront when ready.

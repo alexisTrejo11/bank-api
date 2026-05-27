@@ -11,7 +11,7 @@
       "fieldConfig": { "defaults": {}, "overrides": [] },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
       "id": 1,
-      "options": { "content": "## Bank API (JVM)\n\nScrape target: `app:8080/actuator/prometheus`.\n\nAdd panels for `jvm.memory.used`, `http.server.requests`, etc.", "mode": "markdown" },
+      "options": { "content": "## Bank API (JVM)\n\nMetrics path: configure `PROMETHEUS_METRICS_PATH` in `.env` (default `/actuator/prometheus`).\n\nAdd panels for `jvm.memory.used`, `http.server.requests`, etc.", "mode": "markdown" },
       "title": "Overview",
       "type": "text"
     }

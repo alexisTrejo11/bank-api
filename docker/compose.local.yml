@@ -1,0 +1,229 @@
+# Local full stack — postgres, kafka, redis, metrics, nginx.
+#
+# From repository root (--env-file loads repo-root .env for ${VAR} substitution):
+#   ./docker/validate-env.sh local
+#   docker compose --env-file .env -f docker/compose.local.yml up -d --build
+#
+# Exposed: HTTP :80 (nginx), Grafana :3000, Prometheus :9090
+
+name: bank-api-local
+
+networks:
+  bank_network:
+    driver: bridge
+
+volumes:
+  bank_postgres_data:
+  bank_zookeeper_data:
+  bank_zookeeper_log:
+  bank_kafka_data:
+  bank_grafana_data:
+  bank_loki_data:
+  bank_app_logs:
+  bank_elasticsearch_data:
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_DATA_DIR: /var/lib/zookeeper/data
+    volumes:
+      - bank_zookeeper_data:/var/lib/zookeeper/data
+      - bank_zookeeper_log:/var/lib/zookeeper/log
+    networks: [bank_network]
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - bank_kafka_data:/var/lib/kafka/data
+    networks: [bank_network]
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - bank_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:?Set POSTGRES_PORT in .env}:5432"
+    networks: [bank_network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 8
+
+  redis:
+    image: redis:7-alpine
+    networks: [bank_network]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    environment:
+      PROMETHEUS_SCRAPE_TARGET: ${PROMETHEUS_SCRAPE_TARGET:?Set PROMETHEUS_SCRAPE_TARGET in .env}
+      PROMETHEUS_METRICS_PATH: ${PROMETHEUS_METRICS_PATH:?Set PROMETHEUS_METRICS_PATH in .env}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        sed -e "s|__SCRAPE_TARGET__|$$PROMETHEUS_SCRAPE_TARGET|g" \
+            -e "s|__METRICS_PATH__|$$PROMETHEUS_METRICS_PATH|g" \
+            /etc/prometheus/prometheus.yml.template > /tmp/prometheus.yml
+        exec /bin/prometheus \
+          --config.file=/tmp/prometheus.yml \
+          --storage.tsdb.path=/prometheus \
+          --web.enable-lifecycle
+    volumes:
+      - ./infra/prometheus/prometheus.yml.template:/etc/prometheus/prometheus.yml.template:ro
+    ports:
+      - "${PROMETHEUS_PORT:?Set PROMETHEUS_PORT in .env}:9090"
+    networks: [bank_network]
+
+  loki:
+    image: grafana/loki:2.9.4
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./infra/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - bank_loki_data:/loki
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    networks: [bank_network]
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    volumes:
+      - ./infra/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - bank_app_logs:/var/log/bank:ro
+    depends_on:
+      - loki
+    networks: [bank_network]
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    profiles: [elk]
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    volumes:
+      - bank_elasticsearch_data:/usr/share/elasticsearch/data
+    networks: [bank_network]
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    profiles: [elk]
+    volumes:
+      - ./infra/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "5044:5044"
+    depends_on:
+      - elasticsearch
+    networks: [bank_network]
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    profiles: [elk]
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "${KIBANA_PORT:-5601}:5601"
+    depends_on:
+      - elasticsearch
+    networks: [bank_network]
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?Set GRAFANA_ADMIN_USER in .env}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GRAFANA_PROMETHEUS_URL: ${GRAFANA_PROMETHEUS_URL:?Set GRAFANA_PROMETHEUS_URL in .env}
+      GRAFANA_LOKI_URL: ${GRAFANA_LOKI_URL:-http://loki:3100}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        sed "s|__PROMETHEUS_URL__|$$GRAFANA_PROMETHEUS_URL|g" \
+          /etc/grafana/provisioning/datasources/prometheus.yml.template \
+          > /etc/grafana/provisioning/datasources/prometheus.yml
+        sed "s|__LOKI_URL__|$$GRAFANA_LOKI_URL|g" \
+          /etc/grafana/provisioning/datasources/loki.yml.template \
+          > /etc/grafana/provisioning/datasources/loki.yml
+        exec /run.sh
+    volumes:
+      - bank_grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infra/grafana/provisioning/datasources/prometheus.yml.template:/etc/grafana/provisioning/datasources/prometheus.yml.template:ro
+      - ./infra/grafana/provisioning/datasources/loki.yml.template:/etc/grafana/provisioning/datasources/loki.yml.template:ro
+    ports:
+      - "${GRAFANA_PORT:?Set GRAFANA_PORT in .env}:3000"
+    depends_on:
+      - prometheus
+      - loki
+    networks: [bank_network]
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: bank-api:${BANK_API_IMAGE_TAG:?Set BANK_API_IMAGE_TAG in .env}
+    env_file:
+      - ../.env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      BANK_LOGGING_DIRECTORY: /app/logs
+      BANK_LOGGING_LOKI_ENABLED: ${BANK_LOGGING_LOKI_ENABLED:-true}
+      LOKI_URL: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
+      BANK_LOGGING_LOGSTASH_ENABLED: ${BANK_LOGGING_LOGSTASH_ENABLED:-false}
+      LOGSTASH_HOST: logstash
+    volumes:
+      - bank_app_logs:/app/logs
+    networks: [bank_network]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    expose:
+      - "8080"
+
+  nginx:
+    image: nginx:1.25-alpine
+    depends_on:
+      - app
+    ports:
+      - "${NGINX_HTTP_PORT:?Set NGINX_HTTP_PORT in .env}:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks: [bank_network]

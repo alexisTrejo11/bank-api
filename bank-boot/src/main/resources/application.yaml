@@ -4,14 +4,14 @@ spring:
   profiles:
     default: postgres
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/at_bank}
-    username: ${SPRING_DATASOURCE_USERNAME:bank}
-    password: ${SPRING_DATASOURCE_PASSWORD:change-me-local-only}
+    url: ${SPRING_DATASOURCE_URL:?Set SPRING_DATASOURCE_URL in .env}
+    username: ${SPRING_DATASOURCE_USERNAME:?Set SPRING_DATASOURCE_USERNAME in .env}
+    password: ${SPRING_DATASOURCE_PASSWORD:?Set SPRING_DATASOURCE_PASSWORD in .env}
     driver-class-name: org.postgresql.Driver
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
+      host: ${SPRING_DATA_REDIS_HOST:?Set SPRING_DATA_REDIS_HOST in .env}
+      port: ${SPRING_DATA_REDIS_PORT:?Set SPRING_DATA_REDIS_PORT in .env}
       password: ${SPRING_DATA_REDIS_PASSWORD:}
   jpa:
     hibernate:
@@ -32,11 +32,21 @@ springdoc:
     tags-sorter: alpha
     operations-sorter: alpha
 
+logging:
+  level:
+    root: INFO
+    io.github.alexistrejo11.bank: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+    org.springframework: WARN
+    org.apache.kafka: WARN
+    com.zaxxer.hikari: WARN
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:?Set MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE in .env}
   endpoint:
     health:
       probes:
@@ -69,6 +79,23 @@ bank:
       enabled: false
       dispatch-topic: ${BANK_NOTIFICATIONS_KAFKA_DISPATCH_TOPIC:bank.notifications.dispatch}
       pipeline-topic: ${BANK_NOTIFICATIONS_KAFKA_PIPELINE_TOPIC:bank.notifications.pipeline}
+  logging:
+    file:
+      directory: ${BANK_LOGGING_DIRECTORY:logs}
+      max-file-size-mb: ${BANK_LOGGING_MAX_FILE_SIZE_MB:50}
+      max-history-days: ${BANK_LOGGING_MAX_HISTORY_DAYS:14}
+      total-size-cap-mb: ${BANK_LOGGING_TOTAL_SIZE_CAP_MB:500}
+    loki:
+      url: ${LOKI_URL:}
+      enabled: ${BANK_LOGGING_LOKI_ENABLED:false}
+    logstash:
+      enabled: ${BANK_LOGGING_LOGSTASH_ENABLED:false}
+      host: ${LOGSTASH_HOST:logstash}
+      port: ${LOGSTASH_PORT:5044}
+    access:
+      enabled: ${BANK_LOGGING_ACCESS_ENABLED:true}
+    levels:
+      sql-debug: ${BANK_LOGGING_SQL_DEBUG:false}
   rate-limiting:
     enabled: false
     fail-open: true

@@ -15,7 +15,7 @@ import org.springframework.core.env.MapPropertySource;
  * Uses {@code addLast} so OS environment variables, JVM system properties, and {@code application*.yml}
  * take precedence over file entries (see Spring Boot externalized configuration order).
  */
-@Order(Ordered.LOWEST_PRECEDENCE)
+@Order(Ordered.LOWEST_PRECEDENCE - 1)
 public class DotEnvEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
 	static final String PROPERTY_SOURCE_NAME = "dotenvFile";

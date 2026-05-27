@@ -1,5 +1,12 @@
 # Documentation index
 
+## Observability
+
+| Document | Purpose |
+|----------|---------|
+| [OBSERVABILITY.md](OBSERVABILITY.md) | Logs (AUDIT/ACCESS files, Loki, Logstash), metrics, local stack |
+| [project/source/Observability.md](project/source/Observability.md) | Detailed design and AWS notes |
+
 ## Cross-cutting Git (monorepo)
 
 | Document | Purpose |

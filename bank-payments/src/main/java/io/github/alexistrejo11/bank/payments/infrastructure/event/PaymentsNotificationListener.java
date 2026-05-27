@@ -20,7 +20,7 @@ public class PaymentsNotificationListener {
 
 	@EventListener
 	public void onCompleted(TransferCompletedEvent event) {
-		log.info("notify_transfer_completed transferId={} source={} target={} amount={} {}",
+		log.debug("notify_transfer_completed transferId={} source={} target={} amount={} {}",
 				event.transferId().value(),
 				event.sourceAccountId().value(),
 				event.targetAccountId().value(),
@@ -30,7 +30,7 @@ public class PaymentsNotificationListener {
 
 	@EventListener
 	public void onFailed(TransferFailedEvent event) {
-		log.info("notify_transfer_failed transferId={} code={} message={}",
+		log.debug("notify_transfer_failed transferId={} code={} message={}",
 				event.transferId().value(),
 				event.reasonCode(),
 				event.message());
@@ -38,7 +38,7 @@ public class PaymentsNotificationListener {
 
 	@EventListener
 	public void onReversed(TransferReversedEvent event) {
-		log.info("notify_transfer_reversed reversalId={} originalId={} amount={} {}",
+		log.debug("notify_transfer_reversed reversalId={} originalId={} amount={} {}",
 				event.reversalTransferId().value(),
 				event.originalTransferId().value(),
 				event.amount(),

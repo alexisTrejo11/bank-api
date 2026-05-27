@@ -21,7 +21,7 @@ public class LoansNotificationListener {
 
 	@EventListener
 	public void onApproved(LoanApprovedEvent event) {
-		log.info("notify_loan_approved loanId={} borrower={} principal={} {}",
+		log.debug("notify_loan_approved loanId={} borrower={} principal={} {}",
 				event.loanId().value(),
 				event.borrowerId().value(),
 				event.principal(),
@@ -30,7 +30,7 @@ public class LoansNotificationListener {
 
 	@EventListener
 	public void onDisbursed(LoanDisbursedEvent event) {
-		log.info("notify_loan_disbursed loanId={} checking={} amount={} {}",
+		log.debug("notify_loan_disbursed loanId={} checking={} amount={} {}",
 				event.loanId().value(),
 				event.checkingAccountId().value(),
 				event.amount(),
@@ -39,7 +39,7 @@ public class LoansNotificationListener {
 
 	@EventListener
 	public void onRepayment(LoanRepaymentCompletedEvent event) {
-		log.info("notify_loan_repayment loanId={} repaymentId={} amount={} {}",
+		log.debug("notify_loan_repayment loanId={} repaymentId={} amount={} {}",
 				event.loanId().value(),
 				event.repaymentId().value(),
 				event.amount(),
@@ -48,6 +48,6 @@ public class LoansNotificationListener {
 
 	@EventListener
 	public void onPaidOff(LoanPaidOffEvent event) {
-		log.info("notify_loan_paid_off loanId={}", event.loanId().value());
+		log.debug("notify_loan_paid_off loanId={}", event.loanId().value());
 	}
 }

@@ -15,7 +15,7 @@
 
 ## Docker Compose
 
-Compose reads `.env` for variable substitution. **`POSTGRES_PASSWORD`** is required (see `docker-compose.yml`). Align **`SPRING_DATASOURCE_PASSWORD`** with the database password when the app connects to that Postgres instance.
+Compose reads `.env` for variable substitution (use `--env-file .env` with `-f docker/compose*.yml` from the repo root; see [docker/README.md](../../docker/README.md)). **`POSTGRES_PASSWORD`** is required for the local stack (`docker/compose.local.yml`). Align **`SPRING_DATASOURCE_PASSWORD`** with the database password when the app connects to that Postgres instance.
 
 ## JWT keys
 

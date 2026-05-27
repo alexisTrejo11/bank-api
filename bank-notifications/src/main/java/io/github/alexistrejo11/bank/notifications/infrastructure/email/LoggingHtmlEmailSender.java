@@ -15,7 +15,7 @@ public class LoggingHtmlEmailSender implements HtmlEmailSenderPort {
 
 	@Override
 	public void send(HtmlEmailMessage message) {
-		log.info(
+		log.debug(
 				"email_delivery_stub notificationId={} to={} subject={} htmlChars={}",
 				message.notificationId(),
 				message.toAddress(),

@@ -1,5 +1,5 @@
 # Multi-stage build — final image target < ~300MB (JRE + single fat JAR).
-# Build from repo root: docker build -t bank-api:local .
+# Build from repo root: docker build -f docker/Dockerfile -t bank-api:local .
 
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /build
@@ -22,7 +22,8 @@ RUN ./mvnw -q -B -pl bank-boot -am package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN apk add --no-cache curl \
-	&& addgroup -S bank && adduser -S bank -G bank
+	&& addgroup -S bank && adduser -S bank -G bank \
+	&& mkdir -p /app/logs && chown -R bank:bank /app/logs
 COPY --from=builder /build/bank-boot/target/bank-boot-*.jar app.jar
 USER bank
 EXPOSE 8080

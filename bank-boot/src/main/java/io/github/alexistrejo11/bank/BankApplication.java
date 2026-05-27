@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(scanBasePackages = {
 		"io.github.alexistrejo11.bank",
+		"io.github.alexisTrejo11.bank", // Fails if remove
 })
 public class BankApplication {
 

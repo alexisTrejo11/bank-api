@@ -16,7 +16,7 @@ public class TwilioSmsSenderStub implements SmsSenderPort {
 
 	@Override
 	public void send(SmsMessage message) {
-		log.info(
+		log.debug(
 				"twilio_sms_stub notificationId={} to={} bodyChars={}",
 				message.notificationId(),
 				mask(message.toE164()),

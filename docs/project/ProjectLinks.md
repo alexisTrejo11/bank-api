@@ -18,8 +18,10 @@ Outbound links derived from portfolio metadata. Structured twin: fields under `l
 | Project docs hub | [README.md](README.md) |
 | Machine-readable YAML | [source/](source/) |
 | Environment template | [../../.env.example](../../.env.example) |
-| Compose stack | [../../docker-compose.yml](../../docker-compose.yml) |
-| Application image build | [../../Dockerfile](../../Dockerfile) |
+| Compose stack | [../../docker/compose.yml](../../docker/compose.yml) |
+| Observability | [../OBSERVABILITY.md](../OBSERVABILITY.md) |
+| Monitoring (Prometheus/Grafana) | [../../docker/MONITORING.md](../../docker/MONITORING.md) |
+| Application image build | [../../docker/Dockerfile](../../docker/Dockerfile) |
 
 ## Suggested links after AWS cutover
 

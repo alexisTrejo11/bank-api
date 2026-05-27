@@ -20,27 +20,32 @@ cp .env.example .env
 From the repository root:
 
 ```bash
-docker compose up -d --build
+./docker/validate-env.sh app    # or: local
+
+# App only (external Postgres / Redis / Kafka)
+docker compose --env-file .env -f docker/compose.yml up -d --build
+
+# Full local stack
+docker compose --env-file .env -f docker/compose.local.yml up -d --build
 ```
+
+See **[docker/README.md](../../docker/README.md)** for layout and options.
 
 - **API (via nginx):** `http://localhost` (paths under `/api/`, Swagger under `/swagger-ui.html`)
 - **Grafana:** `http://localhost:3000` (default admin / password from `GRAFANA_ADMIN_PASSWORD` in `.env`, default `admin`)
 - **Prometheus:** `http://localhost:9090`
-- **Kibana:** `http://localhost:5601` (index pattern `bank-logs-*` after logs are shipped)
-- **Logstash:** TCP **5044** inside the network (configure an appender separately if you want logs in ES)
-
-The **Spring Boot** service is named **`app`** and is **not** published on the host by default; use **nginx** on port **80** as the entrypoint.
+The **Spring Boot** service is named **`app`**. With **`compose.local.yml`**, use **nginx** on port **80** as the entrypoint; with **`compose.yml`** (app only), the API is on **`APP_HTTP_PORT`** (default **8080**).
 
 ## TLS (optional)
 
 Self-signed material for nginx HTTPS:
 
 ```bash
-./infra/nginx/gen-certs.sh
-# Then add a second server block in infra/nginx/nginx.conf listening on 443 and mount ./infra/nginx/certs
+./docker/infra/nginx/gen-certs.sh
+# Then add a second server block in docker/infra/nginx/nginx.conf listening on 443 and mount docker/infra/nginx/certs
 ```
 
-Generated files live under `infra/nginx/certs/` (gitignored).
+Generated files live under `docker/infra/nginx/certs/` (gitignored).
 
 ## Domain-event Kafka (`BANK_KAFKA_ENABLED`)
 
@@ -50,7 +55,7 @@ Set **`BANK_KAFKA_ENABLED=true`** in `.env` only after domain events are publish
 
 ## Image size
 
-The **Dockerfile** targets a small runtime image (JRE Alpine + single fat JAR). Check size with:
+The **`docker/Dockerfile`** targets a small runtime image (JRE Alpine + single fat JAR). Check size with:
 
 ```bash
 docker images bank-api:local
@@ -60,4 +65,4 @@ docker images bank-api:local
 
 - **`app` exits / Flyway errors:** ensure Postgres credentials in `.env` match `SPRING_DATASOURCE_*` used by the container (Compose wires `SPRING_DATASOURCE_URL` to `postgres:5432` automatically).
 - **Kafka not ready:** `docker compose logs -f kafka` — the `app` service waits for Kafka’s healthcheck.
-- **Elasticsearch OOM:** lower `ES_JAVA_OPTS` in `docker-compose.yml` or give Docker more memory.
+- **Build context:** always run Compose from the **repository root** so `context: ..` and `../.env` resolve correctly.

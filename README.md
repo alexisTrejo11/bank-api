@@ -45,8 +45,8 @@ cp .env.example .env
 
 # 2. Set required values in .env (POSTGRES_PASSWORD, etc.)
 
-# 3. Start infrastructure
-docker compose up -d postgres redis kafka
+# 3. Start local stack (or only infra you need — see docker/README.md)
+docker compose --env-file .env -f docker/compose.local.yml up -d postgres redis kafka
 
 # 4. Run with docker profile
 ./mvnw -pl bank-boot spring-boot:run -Dspring-profiles.active=docker
@@ -61,6 +61,9 @@ docker compose up -d postgres redis kafka
 | API Docs (JSON) | http://localhost:8080/api-docs | — |
 | Actuator Health | http://localhost:8080/actuator/health | — |
 | Prometheus Metrics | http://localhost:8080/actuator/prometheus | — |
+| Grafana (local stack) | http://localhost:3000 | see `.env` `GRAFANA_ADMIN_*` |
+
+Observability (structured JSON logs, `AUDIT`/`ACCESS` files with rotation, Loki, Prometheus): see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
 
 ## Project Structure
 
@@ -78,7 +81,7 @@ bank-api/
 ├── docs/                 # Documentation
 │   ├── project/          # Project documentation
 │   └── v0.2.0/          # Configuration guides
-├── docker-compose.yml    # Full stack
+├── docker/               # Dockerfile, Compose, nginx/prometheus/grafana
 └── pom.xml               # Parent POM
 ```
 
@@ -194,19 +197,16 @@ BANK_SECURITY_JWT_PUBLIC_KEY_PEM=-----BEGIN PUBLIC KEY-----
 | `postgres` | PostgreSQL, no Redis/Kafka |
 | `docker` | Full stack (PostgreSQL + Redis + Kafka) |
 
-## Docker Compose Services
+## Docker
+
+See **[docker/README.md](docker/README.md)**.
 
 ```bash
-# Start all services
-docker compose up -d
+# App only (external DB / Redis / Kafka via .env)
+docker compose --env-file .env -f docker/compose.yml up -d --build
 
-# Services available:
-# - app:8080        (Bank API)
-# - postgres:5432   (Database)
-# - redis:6379     (Cache)
-# - kafka:19092    (Message broker)
-# - prometheus:9090 (Metrics)
-# - grafana:3000   (Dashboards)
+# Full local stack
+docker compose --env-file .env -f docker/compose.local.yml up -d --build
 ```
 
 ## Security
