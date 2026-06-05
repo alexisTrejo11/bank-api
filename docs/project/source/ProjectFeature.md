@@ -1,150 +1,220 @@
 ---
 features:
-  - id: "feat-auth-jwt"
-    title: "JWT authentication and refresh"
-    description: "Register accepts email+password; login uses the same identifiers; RS256 access tokens plus opaque refresh tokens; logout invalidates refresh metadata and supports JWT blocklist semantics where implemented."
-    icon: "🔐"
+  - id: "jwt-auth-rbac"
+    title: "JWT authentication & RBAC"
+    description: "RS256 JWT with roles (CUSTOMER, ADMIN, AUDITOR) and fine-grained permissions. Refresh tokens stored in Upstash Redis with rotation on refresh; jti blocklist on logout."
+    icon: "shield-lock"
     category: "authentication"
     status: "stable"
     highlights:
-      - "Public `/register`, `/login`, `/refresh` paths skip JWT filter per `SecurityWebPaths`"
-      - "JWKS published at `/.well-known/jwks.json` for verifiers and API gateways"
-      - "Strict Redis token-bucket rate limits on auth endpoints when rate limiting is enabled"
+      - "POST /api/v1/auth/register, login, refresh, logout, me"
+      - "Access TTL 15 min, refresh TTL 7 days"
+      - "JWKS endpoint at /.well-known/jwks.json"
+      - "Redis-backed refresh store enabled in docker/AWS profile"
     techStack:
-      - "JJWT"
-      - "Spring Security 6"
-      - "Redis"
+      - "Spring Security"
+      - "jjwt 0.12.5"
+      - "bank-iam"
+      - "bank-config"
     metrics:
-      - label: "Auth endpoints"
-        value: "5"
+      - label: "Access token TTL"
+        value: "15 min"
         trend: "stable"
-        icon: "🎫"
-
-  - id: "feat-accounts-ledger"
-    title: "Accounts, balances, and ledger"
-    description: "Customers open CHECKING/SAVINGS accounts; balances derive from ledger sums; paginated ledger exposes immutable DEBIT/CREDIT history scoped to the owning user."
-    icon: "🏦"
-    category: "database"
-    status: "stable"
-    highlights:
-      - "Open account command maps to domain `AccountType` and ISO currency validation"
-      - "Ledger queries return `PageResult` mapped to `LedgerPageResponse`"
-      - "Transfer side-effects append paired ledger rows via domain services"
-    techStack:
-      - "Spring Data JPA"
-      - "PostgreSQL"
-      - "Flyway"
+        icon: "clock"
+      - label: "Refresh token TTL"
+        value: "7 days"
+        trend: "stable"
+        icon: "refresh"
     codeSnippet:
       language: "java"
-      filename: "OpenAccountRequest.java"
+      filename: "bank-config/.../RedisRefreshTokenStore.java"
       code: |
-        public record OpenAccountRequest(
-            @NotNull AccountType type,
-            @NotBlank @Size(min = 3, max = 3) @Pattern(regexp = "[A-Za-z]{3}") String currency) {}
+        @ConditionalOnProperty(name = "bank.iam.redis.enabled", havingValue = "true")
+        public class RedisRefreshTokenStore implements RefreshTokenStore {
+            public void store(String refreshToken, UserId userId, Duration ttl) {
+                String key = "iam:refresh:" + Sha256.hex(refreshToken);
+                redis.opsForValue().set(key, userId.value().toString(), ttl);
+            }
+        }
 
-  - id: "feat-payments-idempotent"
-    title: "Idempotent fund transfers"
-    description: "POST `/payments/transfers` requires `Idempotency-Key` (UUID). Handler records outcomes in Redis so safe retries from unstable mobile networks do not double-settle."
-    icon: "💸"
+  - id: "double-entry-accounts"
+    title: "Double-entry ledger accounts"
+    description: "CHECKING, SAVINGS, and LOAN accounts. Balance always computed from ledger entries — never stored as a mutable field."
+    icon: "wallet"
     category: "api"
     status: "stable"
     highlights:
-      - "422 Unprocessable Content with `ApiResponse` error envelope on domain failures"
-      - "Reverse transfer endpoint mirrors idempotency requirements"
-      - "Controller-level strict per-user rate limiting"
+      - "Open account, balance, paginated ledger"
+      - "Ledger entries on transfers, loan disbursement, repayments"
+      - "FROZEN/CLOSED accounts reject mutations"
     techStack:
-      - "Redis"
-      - "Spring Web MVC"
+      - "bank-accounts"
+      - "Spring Data JPA"
+      - "Flyway"
     metrics:
-      - label: "Transfer verbs"
-        value: "2"
+      - label: "Account types"
+        value: "3"
         trend: "stable"
-        icon: "↔️"
+        icon: "layers"
 
-  - id: "feat-loans-lifecycle"
-    title: "Loan origination and repayments"
-    description: "Originate amortizing loans against owned checking accounts, approve pending loans, fetch detail, and pay scheduled repayments with domain `Result` for failures."
-    icon: "📜"
+  - id: "payments-transfers"
+    title: "Transfers with idempotency"
+    description: "PENDING → PROCESSING → COMPLETED state machine. Redis idempotency cache (24h) plus DB dedup. Publishes TransferCompletedEvent for ledger and notifications."
+    icon: "arrow-left-right"
     category: "api"
     status: "stable"
     highlights:
-      - "Sensitive-operation rate profile on writes"
-      - "Separate read authority for `GET /loans/{id}`"
-      - "Repayment payment maps to ledger movements through application services"
+      - "Idempotency-Key header required"
+      - "Same-currency transfers only (no FX v1)"
+      - "Reversal for COMPLETED transfers"
+      - "Result<T> pattern for domain errors → HTTP 422"
     techStack:
-      - "Java 21 records"
-      - "Spring validation"
+      - "bank-payments"
+      - "Upstash Redis"
+    metrics:
+      - label: "Idempotency TTL"
+        value: "24h"
+        trend: "stable"
+        icon: "key"
+    codeSnippet:
+      language: "java"
+      filename: "bank-payments/.../InitiateTransferHandler.java"
+      code: |
+        Optional<Result<TransferResponse>> cached = idempotencyCache.get(userId, idempotencyKey);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+        if (sourceAccountId.equals(targetAccountId)) {
+            return persistFailure(command, currencyRaw, "SELF_TRANSFER", "...");
+        }
 
-  - id: "feat-audit-search"
-    title: "Immutable audit search API"
-    description: "Auditors query append-only audit records with filters for event type, actor, entity, and time window; results are pageable for export to SIEM or OpenSearch."
-    icon: "🕵️"
+  - id: "loans-amortization"
+    title: "Loan origination & amortization"
+    description: "Fixed monthly payment schedule at origination. Approval creates LOAN account and disburses to checking. Repayments debit checking via domain events."
+    icon: "percent"
+    category: "api"
+    status: "stable"
+    highlights:
+      - "Originate → approve → pay installments workflow"
+      - "Statuses: PENDING_APPROVAL, ACTIVE, PAID_OFF, DEFAULTED"
+      - "BigDecimal interest — never float/double"
+    techStack:
+      - "bank-loans"
+      - "bank-accounts (event listeners)"
+    metrics:
+      - label: "Repayment statuses"
+        value: "3"
+        trend: "stable"
+        icon: "calendar"
+
+  - id: "append-only-audit"
+    title: "Append-only audit trail"
+    description: "Every BankDomainEvent captured as immutable AuditRecord (JSONB payload). DB trigger prevents UPDATE/DELETE."
+    icon: "clipboard-list"
     category: "security"
     status: "stable"
     highlights:
-      - "Dedicated `audit:read` authority"
-      - "Spring `Pageable` for CSV/Parquet export pipelines"
+      - "AuditEventListener subscribes to all domain events"
+      - "UUID v7 time-ordered IDs for range queries"
+      - "GET /api/v1/audit/records with filters"
+      - "Dedicated audit.json log file (ACCESS/AUDIT loggers)"
     techStack:
-      - "PostgreSQL"
-      - "Spring Data"
+      - "bank-audit"
+      - "PostgreSQL JSONB"
+    metrics:
+      - label: "Mutability"
+        value: "append-only"
+        trend: "stable"
+        icon: "lock"
 
-  - id: "feat-notifications-monitoring"
-    title: "Notification delivery monitoring"
-    description: "Operations users inspect notification records (status, channel) and a summarized pipeline health snapshot — ideal metrics source for CloudWatch dashboards."
-    icon: "📬"
-    category: "monitoring"
-    status: "beta"
+  - id: "kafka-notifications"
+    title: "Async notifications (direct + Kafka)"
+    description: "Fire-and-forget email/SMS on transfer and loan events. In AWS/docker profile, dispatch-mode=kafka enqueues to cloud Kafka; consumer in bank-notifications processes pipeline."
+    icon: "bell"
+    category: "messaging"
+    status: "stable"
     highlights:
-      - "Filters by `NotificationStatus` and `NotificationChannel` enums"
-      - "Descending sort on `createdAt` by default"
+      - "Templates: transfer.completed, loan.approved, loan.paid_off, etc."
+      - "KafkaNotificationDispatchIngress when dispatch-mode=kafka"
+      - "Monitoring API: /api/v1/notifications/monitoring/*"
+      - "Dev stubs log to console; production uses SMTP/SMS config"
     techStack:
-      - "Spring MVC"
-      - "Kafka (where notification dispatch uses broker)"
+      - "bank-notifications"
+      - "Spring Kafka"
+      - "Cloud Kafka broker"
+    codeSnippet:
+      language: "java"
+      filename: "bank-notifications/.../KafkaNotificationDispatchIngress.java"
+      code: |
+        @ConditionalOnProperty(name = "bank.notifications.dispatch-mode", havingValue = "kafka")
+        public void submit(DispatchNotificationCommand command) {
+            String json = objectMapper.writeValueAsString(NotificationDispatchMessage.from(command));
+            kafkaTemplate.send(dispatchTopic, json);
+        }
 
-  - id: "feat-rate-limiting"
+  - id: "redis-rate-limiting"
     title: "Redis token-bucket rate limiting"
-    description: "Global servlet filter plus `@RateLimit` interceptor apply configurable profiles (STANDARD, STRICT, SENSITIVE_OPERATIONS) backed by Redis counters."
-    icon: "🚦"
+    description: "Global filter + @RateLimit annotation on controllers. Lua script for atomic refill/consume. Fail-open on Redis errors when configured."
+    icon: "speedometer"
     category: "performance"
     status: "stable"
     highlights:
-      - "`failOpen` defaults to true — Redis outages do not hard-fail traffic"
-      - "Profiles map to capacities/refill rates in `RateLimitingProperties`"
+      - "Profiles: standard, strict, sensitive_operations"
+      - "Enabled in docker/AWS profile (bank.rate-limiting.enabled=true)"
+      - "Scopes: PER_IP, PER_USER"
     techStack:
-      - "Redis"
-      - "Spring Boot configuration properties"
+      - "bank-boot/infrastructure/ratelimit"
+      - "Upstash Redis"
+      - "Lua token-bucket script"
+    metrics:
+      - label: "Strict profile"
+        value: "12 tokens"
+        trend: "stable"
+        icon: "gauge"
 
-  - id: "feat-spring-modulith"
-    title: "Spring Modulith module boundaries"
-    description: "Module structure is verified in build/tests so packages cannot accidentally create illegal dependencies between bounded contexts — practice for eventual ECS split."
-    icon: "🧩"
-    category: "integration"
-    status: "stable"
-    highlights:
-      - "Documentation and tests from `spring-modulith-starter-test`"
-      - "Event-based integration stays within JVM until MSK bridge is expanded"
-    techStack:
-      - "Spring Modulith 2.0.5"
-
-  - id: "feat-openapi"
-    title: "OpenAPI 3 and Swagger UI"
-    description: "springdoc exposes `/v3/api-docs` and `/swagger-ui/**`, permitted anonymously for developer experience; on AWS, protect via IP allow list or VPN."
-    icon: "📘"
+  - id: "openapi-docs"
+    title: "OpenAPI & standardized responses"
+    description: "springdoc-openapi with @BankApiOperation annotations. ApiResponse<T> envelope with data, meta.timestamp, and errors[]."
+    icon: "book"
     category: "api"
     status: "stable"
     highlights:
-      - "`BankApiOperation` keys centralize operationIds"
-      - "Works behind nginx `X-Forwarded-*` headers in Compose and ALB in AWS"
+      - "/swagger-ui.html and /api-docs"
+      - "GlobalExceptionHandler maps domain exceptions"
+      - "RequestAccessAuditFilter for HTTP access logs"
     techStack:
-      - "springdoc-openapi 2.6.0"
+      - "springdoc-openapi"
+      - "bank-shared/shared_kernel/api"
+    metrics:
+      - label: "Documented version"
+        value: "0.3.0"
+        trend: "stable"
+        icon: "tag"
+
+  - id: "docker-aws-deploy"
+    title: "Docker + AWS production deploy"
+    description: "Multi-stage Temurin 21 JRE image (~300MB). compose.yml runs app only on EC2; RDS, Upstash Redis, and cloud Kafka via .env. Observability on EC2."
+    icon: "docker"
+    category: "integration"
+    status: "stable"
+    highlights:
+      - "docker/compose.yml — single app container on EC2"
+      - "docker/compose.local.yml — full local stack"
+      - "Flyway migrations on startup (ddl-auto=validate)"
+      - "Actuator health + prometheus endpoints"
+    techStack:
+      - "Docker"
+      - "Amazon EC2"
+      - "Amazon RDS"
+      - "Upstash Redis"
 ---
 
-# Project features
+# Project Features
 
-## Notes
+> **Stable:** Core banking flows (auth, accounts, payments, loans, audit) are implemented and covered by integration tests in bank-boot.
 
-- **Danger**: Swagger UI is **permitAll** in `SecurityConfig` — for a public internet deployment, front it with **VPN**, **IP allow list**, or **Basic auth at ALB** unless you intend a fully public API catalog.
-- **Danger**: Rate limiting `failOpen=true` means attackers could theoretically bypass throttles during Redis incidents — weigh against `failOpen=false` for high-risk profiles only.
-- **Good**: Payments + loans both surface **domain-shaped** errors via `ApiResponse.failure` instead of leaking stack traces to clients.
-- **Missing**: Automated contract tests (Pact / Spring Cloud Contract) are not represented here yet; add a feature row when they exist.
-- **Observation**: Notification feature marked **beta** until Kafka-enabled paths and DLQ handling are proven under load tests on MSK.
+> **AWS profile:** Set `SPRING_PROFILES_ACTIVE=docker`, point `SPRING_DATASOURCE_*` to RDS, `SPRING_DATA_REDIS_*` to Upstash, `SPRING_KAFKA_BOOTSTRAP_SERVERS` to your cloud Kafka host, and `BANK_KAFKA_ENABLED=true`.
+
+> **Warning:** Email/SMS are stubbed in dev — configure real SMTP/Twilio env vars before expecting live notifications in production.
+
+> **Useful:** Run `./docker/validate-env.sh app` before deploy to ensure all required `.env` variables are set.

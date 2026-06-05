@@ -1,321 +1,428 @@
 ---
 layers:
-  - name: "Presentation (adapters in)"
-    description: "Spring Web MVC controllers, request/response DTOs, validation, and OpenAPI annotations. Maps HTTP to application commands/queries."
-    color: "#1E88E5"
+  - name: "Presentation (API)"
+    description: "REST controllers per domain module — no business logic, only DTO mapping and handler delegation."
+    color: "#6366F1"
     expanded: true
     components:
-      - "AuthController (/api/v1/auth)"
-      - "AccountController (/api/v1/accounts)"
-      - "TransferController (/api/v1/payments)"
-      - "LoanController (/api/v1/loans)"
-      - "AuditController (/api/v1/audit)"
-      - "NotificationMonitoringController (/api/v1/notifications/monitoring)"
+      - "AuthController — /api/v1/auth"
+      - "AccountController — /api/v1/accounts"
+      - "TransferController — /api/v1/payments"
+      - "LoanController — /api/v1/loans"
+      - "AuditController — /api/v1/audit"
+      - "NotificationMonitoringController — /api/v1/notifications/monitoring"
     responsibilities:
-      - "Translate JSON bodies to immutable records and to application-layer commands."
-      - "Return ApiResponse<T> envelopes and appropriate HTTP status codes (e.g. 422 for domain failures on transfers)."
+      - "Validate request DTOs (@Valid)"
+      - "Map domain results to ApiResponse<T>"
+      - "Apply @RateLimit and OpenAPI annotations"
     technologies:
       - "Spring Web MVC"
-      - "Spring Security (method security via authorities on URL patterns)"
-      - "Jakarta Validation"
       - "springdoc-openapi"
+      - "Jakarta Validation"
 
-  - name: "Application (use cases)"
-    description: "Command/query handlers orchestrate domain services and ports. Transaction boundaries live here or on handlers via @Transactional."
-    color: "#43A047"
+  - name: "Application layer"
+    description: "Command/query handlers orchestrate use cases, publish domain events, and coordinate transactions."
+    color: "#F59E0B"
     expanded: true
     components:
-      - "OpenAccountHandler, PostTransferToLedgerHandler, loan handlers, payment handlers, IAM handlers"
-      - "Query handlers: ledger, balance, audit search, loan detail, notification lists"
+      - "Command handlers (InitiateTransferHandler, OriginateLoanHandler, …)"
+      - "Query handlers (GetAccountBalanceHandler, SearchAuditRecordsHandler, …)"
+      - "ApplicationEventPublisher for cross-module events"
     responsibilities:
-      - "Enforce use-case-level rules before touching aggregates."
-      - "Publish domain or integration events after persistence when required."
+      - "Transaction boundaries (@Transactional)"
+      - "Idempotency checks before side effects"
+      - "Publish BankDomainEvent after commit"
     technologies:
-      - "Spring @Component / constructor injection"
-      - "Spring Modulith event APIs (where used)"
+      - "Spring @Component handlers"
+      - "Spring Modulith event API"
 
-  - name: "Domain"
-    description: "Entities, value objects, domain exceptions, and repository interfaces. No Spring Web types."
-    color: "#6D4C41"
-    expanded: false
+  - name: "Domain layer"
+    description: "Pure Java aggregates, value objects, and port interfaces — zero Spring/JPA dependencies."
+    color: "#10B981"
+    expanded: true
     components:
-      - "BankAccount, LedgerEntry, LoanAggregate, audit and notification domain models"
-      - "AccountRepository, LedgerEntryRepository, etc. (interfaces)"
+      - "Money, AccountId, UserId, TransferId (bank-shared)"
+      - "Transfer state machine, Loan amortization rules"
+      - "port.in / port.out repository interfaces"
     responsibilities:
-      - "Express invariants (e.g. currency match on transfer, account active)."
-      - "Stay free of infrastructure details."
+      - "Enforce invariants (balance from ledger, transfer states)"
+      - "Return Result<T> for expected failures"
     technologies:
-      - "Plain Java 21"
+      - "Java 21 records"
+      - "BigDecimal financial math"
 
-  - name: "Infrastructure (adapters out)"
-    description: "JPA entities, Spring Data repositories, Kafka listeners, Redis-backed services, Flyway."
-    color: "#8E24AA"
-    expanded: false
+  - name: "Infrastructure layer"
+    description: "JPA adapters, Redis stores, Kafka producers/consumers, and external notification stubs."
+    color: "#EF4444"
+    expanded: true
     components:
-      - "Persistence adapters under each module’s infrastructure package"
-      - "JwtAuthenticationFilter, SecurityConfig (bank-config)"
-      - "Redis token bucket rate limiting (bank-boot)"
+      - "JPA entities + repository adapters"
+      - "RedisRefreshTokenStore, TransferIdempotencyCache"
+      - "KafkaNotificationDispatchIngress"
+      - "@TransactionalEventListener cross-module listeners"
     responsibilities:
-      - "Map domain models to tables and external brokers."
-      - "Implement technical cross-cutting (JWT parsing, rate limit keys)."
+      - "Implement domain ports"
+      - "Map entities ↔ domain models"
+      - "Bridge to RDS, Upstash Redis, cloud Kafka"
     technologies:
       - "Spring Data JPA"
-      - "PostgreSQL driver"
       - "Spring Data Redis"
       - "Spring Kafka"
 
+  - name: "Data & messaging (AWS)"
+    description: "External managed services — not bundled in production compose."
+    color: "#8B5CF6"
+    expanded: true
+    components:
+      - "Amazon RDS PostgreSQL 16"
+      - "Upstash Redis (tokens, idempotency, rate limits)"
+      - "Cloud Kafka broker (notification dispatch + pipeline topics)"
+    responsibilities:
+      - "ACID persistence via Flyway-managed schema"
+      - "Shared state across EC2 app restarts"
+      - "Decouple notification enqueue from HTTP thread"
+    technologies:
+      - "Flyway"
+      - "PostgreSQL"
+      - "Redis"
+      - "Kafka"
+
+  - name: "Observability (EC2)"
+    description: "External monitoring stack running alongside or on the same EC2 host."
+    color: "#64748B"
+    expanded: false
+    components:
+      - "Prometheus (scrapes /actuator/prometheus)"
+      - "Grafana (dashboards, Prometheus + Loki datasources)"
+      - "Loki + Promtail (app logs from /app/logs volume)"
+      - "Optional ELK profile (Logstash → Elasticsearch → Kibana)"
+    responsibilities:
+      - "Metrics, dashboards, log aggregation"
+      - "audit.json and access.json structured files"
+    technologies:
+      - "Micrometer"
+      - "Logback JSON"
+      - "Prometheus / Grafana / Loki"
+
 designPatterns:
+  - title: "Modular monolith"
+    emoji: "🧩"
+    description: "Nine Maven modules with package-level boundaries; any module extractable to microservice by swapping ApplicationEvent for Kafka/SQS."
+    category: "Structural"
+    badge: "Core"
   - title: "Hexagonal (ports & adapters)"
     emoji: "⬡"
-    description: "Domain defines repository ports; infrastructure supplies JPA-backed implementations. Web layer depends on application handlers, not on repositories directly."
-    category: "Architecture"
-    badge: "core"
-  - title: "CQRS-style split"
-    emoji: "↔"
-    description: "Commands (write) and queries (read) use separate handler types and DTOs, keeping read models optimized for APIs without overloading aggregates."
-    category: "Application"
-    badge: "patterns"
-  - title: "Transactional outbox / domain events (Spring)"
-    emoji: "📨"
-    description: "Cross-module work uses Spring application events; listeners that must see committed data should align with AFTER_COMMIT semantics where configured."
+    description: "domain/port.out interfaces implemented in infrastructure/persistence/adapter — domain never imports JPA."
+    category: "Structural"
+    badge: "DDD"
+  - title: "CQRS-lite"
+    emoji: "📋"
+    description: "Separate command and query handlers with dedicated Command/Query records."
+    category: "Behavioral"
+    badge: "Application"
+  - title: "Domain events"
+    emoji: "📡"
+    description: "TransferCompletedEvent, LoanDisbursedEvent, etc. in bank-shared; listeners in accounts, audit, notifications."
+    category: "Behavioral"
+    badge: "Events"
+  - title: "Result<T> for failures"
+    emoji: "✅"
+    description: "Expected domain failures (INSUFFICIENT_FUNDS) return Result.failure instead of exceptions for control flow."
+    category: "Behavioral"
+    badge: "API"
+  - title: "Idempotency key"
+    emoji: "🔑"
+    description: "Redis + DB dedup for payment mutations — safe retries from mobile/unstable networks."
     category: "Integration"
-    badge: "events"
-  - title: "Modular monolith"
-    emoji: "🧱"
-    description: "Spring Modulith enforces module boundaries in documentation and tests so a future split to multiple ECS services is a deployment change, not a rewrite."
-    category: "Modulith"
-    badge: "spring-modulith"
+    badge: "Payments"
 
 scalabilityStrategies:
-  - title: "Horizontal scale of stateless API tier"
-    description: "ECS service desired count > 1 behind ALB; JWTs are self-contained; Redis holds refresh/idempotency state shared across tasks."
-  - title: "Read scaling"
-    description: "Ledger and audit queries are pageable; RDS read replicas can back heavy read workloads after connection routing is introduced."
-  - title: "Kafka for cross-boundary fan-out"
-    description: "MSK replaces embedded broker usage from Compose; consumers can be scaled independently for notifications and analytics."
+  - title: "Stateless API container"
+    description: "JWT + external Redis — scale horizontally with additional EC2 instances behind ALB; shared Upstash Redis for tokens and idempotency."
+  - title: "RDS PostgreSQL"
+    description: "Managed backups and storage; connection pooling via HikariCP; Flyway migrations on deploy."
+  - title: "Kafka notification pipeline"
+    description: "Decouple notification dispatch from request thread; consumer group on cloud Kafka handles burst traffic."
+  - title: "Rate limiting fail-open"
+    description: "Redis token bucket protects auth and payments; configurable fail-open if Redis unreachable (logged, not silent)."
 
 securityStrategies:
-  - title: "RS256 JWT + authority checks"
-    description: "Asymmetric keys; `SecurityConfig` maps each banking route pattern to Spring Security authorities derived from JWT claims."
-  - title: "Rate limiting"
-    description: "Optional Redis token buckets: global filter plus `@RateLimit` profiles on sensitive controllers."
-  - title: "Defense in depth on AWS"
-    description: "Private subnets for ECS tasks, security groups allowing only ALB → task port, Secrets Manager for signing keys, and VPC endpoints to reduce public data-plane exposure."
+  - title: "RS256 JWT + permissions"
+    description: "Spring Security filter chain; @PreAuthorize on sensitive endpoints; permissions[] in JWT claims."
+  - title: "Refresh rotation + blocklist"
+    description: "Old refresh invalidated on rotate; logout adds jti to Redis blocklist for remaining access token TTL."
+  - title: "Append-only audit"
+    description: "DB trigger prevents audit record mutation; full event JSON in payload for reconstruction."
+  - title: "Idempotency on writes"
+    description: "Payments require Idempotency-Key; prevents duplicate transfers on client retries."
+  - title: "CORS configuration"
+    description: "bank.http.cors.allowed-origins from env — empty by default; set explicitly for frontends."
 
 cacheStrategies:
-  - name: "Idempotency outcome cache"
-    description: "Payment commands require `Idempotency-Key`; outcomes are cached in Redis to deduplicate retries (TTL aligned with product policy)."
-    ttl: "24h (typical product default — confirm in payments module configuration)"
-    coverage: "POST /api/v1/payments/transfers and reverse"
-  - name: "JWT refresh / blocklist metadata"
-    description: "Refresh tokens and revocation lists backed by Redis for fast lookups on every authenticated request path."
-    ttl: "7d refresh TTL (illustrative — verify IAM properties)"
-    coverage: "Authentication and logout flows"
+  - name: "IAM refresh tokens"
+    description: "Redis key iam:refresh:{sha256(token)} → userId, TTL 7 days"
+    ttl: "7 days"
+    coverage: "Refresh token validation and rotation"
+  - name: "JWT blocklist"
+    description: "Redis key blocklist:{jti} for revoked access tokens"
+    ttl: "Remaining token lifetime"
+    coverage: "Logout and suspend flows"
+  - name: "Transfer idempotency"
+    description: "Cached Result<TransferResponse> per userId + idempotencyKey"
+    ttl: "24h"
+    coverage: "POST /payments/transfers and /reverse"
   - name: "Rate limit buckets"
-    description: "Per-IP and per-user token buckets stored in Redis when `bank.rate-limiting.enabled=true`."
-    ttl: "n/a (sliding token bucket, not a classical TTL cache)"
-    coverage: "/api/** when rate limiting enabled"
+    description: "Lua token-bucket script — atomic refill + consume per IP/user key"
+    ttl: "Rolling window"
+    coverage: "Auth, payments, loans sensitive ops"
 
 architectureFeatures:
-  - title: "Single deployable, many bounded contexts"
+  - title: "Spring Modulith"
     emoji: "📦"
-    description: "Operational simplicity today; optional extraction of loans/payments workers to separate ECS services later."
-  - title: "Flyway as schema authority"
-    emoji: "🪶"
-    description: "Database migrations live with the application lifecycle; RDS upgrades coordinated with migration compatibility."
-  - title: "Observability hooks"
-    emoji: "📈"
-    description: "Actuator exposes health and metrics; in AWS, scrape via ADOT or CloudWatch agent instead of only Prometheus sidecars."
+    description: "Formal module boundaries with event-based integration; supports future extraction without package rewrites."
+  - title: "Flyway migrations"
+    emoji: "🗃️"
+    description: "15 versioned SQL migrations + repeatable seed; ddl-auto=validate in production."
+  - title: "Standard ApiResponse"
+    emoji: "📨"
+    description: "Uniform { data, meta, errors } JSON for all REST endpoints."
+  - title: "Actuator observability"
+    emoji: "📊"
+    description: "health, info, prometheus endpoints exposed per MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE."
 
 architectureDiagram:
   legendItems:
     - type: "client"
-      label: "Client / partner API"
-      color: "#90CAF9"
-      icon: "💻"
+      label: "Client"
+      color: "#6366F1"
+      icon: "monitor"
     - type: "gateway"
-      label: "ALB / API front door"
-      color: "#FFCC80"
-      icon: "🚪"
+      label: "Gateway"
+      color: "#10B981"
+      icon: "shield"
     - type: "service"
-      label: "ECS Fargate (bank-boot)"
-      color: "#A5D6A7"
-      icon: "⚙️"
+      label: "API service"
+      color: "#F59E0B"
+      icon: "server"
     - type: "database"
-      label: "RDS PostgreSQL"
-      color: "#CE93D8"
-      icon: "🐘"
+      label: "Database"
+      color: "#EF4444"
+      icon: "database"
     - type: "queue"
-      label: "MSK Kafka"
-      color: "#FFF59D"
-      icon: "📨"
+      label: "Queue / cache"
+      color: "#8B5CF6"
+      icon: "layers"
     - type: "monitoring"
-      label: "CloudWatch / observability"
-      color: "#B0BEC5"
-      icon: "📊"
+      label: "Monitoring"
+      color: "#64748B"
+      icon: "activity"
+
   nodes:
     - id: "client"
-      label: "HTTPS clients"
+      label: "API clients / Postman"
       type: "client"
       x: 80
       y: 120
+      connections: ["ec2-nginx"]
       status: "healthy"
-      traffic: 100
-    - id: "alb"
-      label: "Application Load Balancer"
+      traffic: 50
+    - id: "ec2-nginx"
+      label: "EC2 — Nginx (optional)"
       type: "gateway"
       x: 280
       y: 120
+      connections: ["bank-app"]
       status: "healthy"
-      traffic: 100
-    - id: "ecs"
-      label: "ECS service (bank-api tasks)"
+      traffic: 50
+    - id: "bank-app"
+      label: "Bank API (Docker on EC2)"
       type: "service"
       x: 480
       y: 120
+      connections: ["rds", "upstash", "kafka", "prometheus"]
       status: "healthy"
-      traffic: 95
+      traffic: 45
     - id: "rds"
-      label: "RDS PostgreSQL"
+      label: "Amazon RDS PostgreSQL"
       type: "database"
-      x: 520
-      y: 280
-      status: "healthy"
-      traffic: 60
-    - id: "redis"
-      label: "ElastiCache Redis"
-      type: "database"
-      x: 320
-      y: 280
-      status: "healthy"
-      traffic: 55
-    - id: "msk"
-      label: "MSK cluster"
-      type: "queue"
-      x: 720
-      y: 280
+      x: 700
+      y: 60
+      connections: []
       status: "healthy"
       traffic: 40
-    - id: "cw"
-      label: "CloudWatch"
-      type: "monitoring"
-      x: 120
-      y: 280
+    - id: "upstash"
+      label: "Upstash Redis"
+      type: "queue"
+      x: 700
+      y: 180
+      connections: []
+      status: "healthy"
+      traffic: 35
+    - id: "kafka"
+      label: "Cloud Kafka broker"
+      type: "queue"
+      x: 480
+      y: 260
+      connections: ["bank-app"]
       status: "healthy"
       traffic: 20
+    - id: "prometheus"
+      label: "Prometheus (EC2)"
+      type: "monitoring"
+      x: 280
+      y: 260
+      connections: ["grafana"]
+      status: "healthy"
+      traffic: 10
+    - id: "grafana"
+      label: "Grafana + Loki (EC2)"
+      type: "monitoring"
+      x: 80
+      y: 260
+      connections: []
+      status: "healthy"
+      traffic: 8
+
   connections:
     - id: "c1"
       from: "client"
-      to: "alb"
+      to: "ec2-nginx"
       label: "HTTPS"
       protocol: "TLS"
       isActive: true
     - id: "c2"
-      from: "alb"
-      to: "ecs"
-      label: "HTTP"
-      protocol: "HTTP/1.1"
+      from: "ec2-nginx"
+      to: "bank-app"
+      label: "Proxy :8080"
+      protocol: "HTTP"
       isActive: true
     - id: "c3"
-      from: "ecs"
+      from: "bank-app"
       to: "rds"
-      label: "JDBC"
-      protocol: "TCP"
+      label: "JDBC / Flyway"
+      protocol: "PostgreSQL"
       isActive: true
     - id: "c4"
-      from: "ecs"
-      to: "redis"
-      label: "Redis protocol"
-      protocol: "TCP"
+      from: "bank-app"
+      to: "upstash"
+      label: "Tokens / idempotency / limits"
+      protocol: "Redis TLS"
       isActive: true
     - id: "c5"
-      from: "ecs"
-      to: "msk"
-      label: "produce/consume"
+      from: "bank-app"
+      to: "kafka"
+      label: "Notification dispatch"
       protocol: "Kafka"
       isActive: true
     - id: "c6"
-      from: "ecs"
-      to: "cw"
-      label: "metrics/logs"
-      protocol: "OTLP / CW API"
+      from: "kafka"
+      to: "bank-app"
+      label: "Consumer group"
+      protocol: "Kafka"
+      isActive: true
+    - id: "c7"
+      from: "prometheus"
+      to: "bank-app"
+      label: "Scrape metrics"
+      protocol: "HTTP /actuator/prometheus"
+      isActive: true
+    - id: "c8"
+      from: "grafana"
+      to: "prometheus"
+      label: "Dashboards"
+      protocol: "HTTP"
       isActive: true
 
 dataFlow:
   requestFlow:
     - number: 1
-      title: "TLS at ALB"
-      description: "Client hits ACM certificate on ALB; optional AWS WAF inspection for OWASP rules."
-      icon: "🔐"
+      title: "HTTP request"
+      description: "Client sends REST call with Bearer JWT (except public auth routes)."
+      icon: "send"
     - number: 2
-      title: "JWT authentication filter"
-      description: "Unless path is in allowlist (register/login/refresh, swagger, JWKS), JwtAuthenticationFilter validates Bearer JWT and builds the security context."
-      icon: "🎫"
+      title: "Security + rate limit"
+      description: "JwtAuthenticationFilter validates RS256 token; GlobalRateLimitFilter and @RateLimit check Redis token bucket."
+      icon: "filter"
     - number: 3
-      title: "Controller → handler"
-      description: "Controller builds command/query object; application handler enforces rules and calls domain repositories."
-      icon: "🎯"
+      title: "Handler execution"
+      description: "Controller delegates to application handler; domain rules enforced; @Transactional wraps persistence."
+      icon: "cog"
     - number: 4
-      title: "Transaction commit"
-      description: "Successful flush to PostgreSQL commits the unit of work; failures roll back and skip downstream listeners that depend on commit."
-      icon: "💾"
+      title: "Persistence & cache"
+      description: "JPA writes to RDS; Redis updated for idempotency or rate counters."
+      icon: "database"
     - number: 5
-      title: "Response envelope"
-      description: "ApiResponse wraps success payload or standardized error codes for API consumers and BFFs."
-      icon: "📤"
+      title: "Events & response"
+      description: "AFTER_COMMIT listeners update ledger, audit, notifications; ApiResponse JSON returned."
+      icon: "reply"
+
   eventFlow:
     - number: 1
-      title: "Domain publishes application events"
-      description: "Handlers publish Spring application events representing something that already happened in the domain."
-      icon: "📣"
+      title: "Domain event published"
+      description: "e.g. TransferCompletedEvent after successful transfer commit."
+      icon: "zap"
     - number: 2
-      title: "After-commit listeners"
-      description: "Listeners for audit, ledger posting, or notifications should use transactional event semantics so they never observe phantom reads from rolled-back work."
-      icon: "⏱️"
+      title: "Cross-module listeners"
+      description: "accounts posts ledger entries; audit appends AuditRecord; notifications builds DispatchNotificationCommand."
+      icon: "inbox"
     - number: 3
-      title: "Kafka (MSK) for durable fan-out"
-      description: "Where enabled, notifications or analytics can consume from MSK topics populated by producers in the monolith or future outbox workers."
-      icon: "📨"
+      title: "Kafka enqueue (AWS)"
+      description: "When dispatch-mode=kafka, KafkaNotificationDispatchIngress publishes to bank.notifications.dispatch topic on cloud broker."
+      icon: "upload"
     - number: 4
-      title: "Downstream idempotent consumers"
-      description: "Consumers deduplicate by business keys or message IDs to stay safe under at-least-once delivery."
-      icon: "♻️"
+      title: "Notification delivery"
+      description: "Kafka consumer processes pipeline; email/SMS sent or stubbed; status logged in notification_log table."
+      icon: "mail"
 
 techDecisions:
-  decisions:
-    - title: "Modular monolith vs microservices day one"
-      problem: "Small team needs correctness and velocity; microservices add network and ops overhead."
-      solution: "Single Spring Boot binary with enforced module boundaries (Spring Modulith) and clear packages per bounded context."
-      alternatives:
-        - "Full microservices mesh from day zero"
-        - "Unstructured monolith without module rules"
-      outcome: "Faster delivery with an extraction path to ECS services per context when load or team boundaries justify it."
-      icon: "⚖️"
-    - title: "PostgreSQL everywhere"
-      problem: "Financial data needs ACID and strong consistency for ledger rows."
-      solution: "PostgreSQL as the system of record with Flyway migrations versioned with the app."
-      alternatives:
-        - "NoSQL primary store for balances"
-        - "Multi-database polyglot persistence"
-      outcome: "Simpler operations and straightforward RDS HA patterns (Multi-AZ)."
-      icon: "🐘"
-    - title: "Redis for cross-request coordination"
-      problem: "Idempotency, refresh sessions, JWT revocation metadata, and rate limits need sub-millisecond shared state."
-      solution: "ElastiCache Redis cluster accessed from all ECS tasks."
-      alternatives:
-        - "DynamoDB for idempotency only"
-        - "In-memory only (breaks multi-task correctness)"
-      outcome: "Predictable deduplication and throttling semantics at scale."
-      icon: "💾"
+  - title: "Modular monolith vs microservices"
+    problem: "Portfolio project needs credible domain boundaries without Kubernetes operational cost."
+    solution: "Maven multi-module monolith with ApplicationEvent + optional Kafka; single Docker image on EC2."
+    alternatives:
+      - "Microservice per bank-* module"
+      - "Serverless Lambda per endpoint"
+    outcome: "Fast iteration locally; clean extraction path documented in .agents/architecture.md."
+    icon: "layers"
+  - title: "PostgreSQL on RDS"
+    problem: "Financial data requires ACID, relational integrity, and append-only audit with triggers."
+    solution: "Amazon RDS PostgreSQL 16; Flyway migrations; Hibernate ddl-auto=validate."
+    alternatives:
+      - "H2 (local dev only)"
+      - "Document store for ledger"
+    outcome: "Production-grade persistence; same SQL dialect in local compose.local.yml."
+    icon: "database"
+  - title: "Upstash Redis"
+    problem: "JWT refresh, blocklist, idempotency, and rate limits need shared state across EC2 restarts."
+    solution: "External Upstash Redis — not containerized in production compose.yml."
+    alternatives:
+      - "In-container Redis"
+      - "Database-only idempotency"
+    outcome: "Survives container redeploys; works with multiple EC2 instances behind ALB."
+    icon: "redis"
+  - title: "Cloud Kafka for notifications"
+    problem: "Notification dispatch should not block HTTP threads or be lost on app restart."
+    solution: "Kafka broker on cloud instance; BANK_KAFKA_ENABLED=true and dispatch-mode=kafka in docker profile."
+    alternatives:
+      - "Direct ApplicationEvent only (v0.1.0 default)"
+      - "Amazon SQS"
+    outcome: "Same code path testable locally via compose.local.yml kafka service."
+    icon: "kafka"
+  - title: "EC2 observability stack"
+    problem: "Need metrics and logs without managed CloudWatch-only setup for portfolio demo."
+    solution: "Prometheus scrapes app on EC2; Grafana dashboards; Loki for log aggregation; optional ELK profile."
+    alternatives:
+      - "CloudWatch only"
+      - "Datadog SaaS"
+    outcome: "Full visibility documented in docker/MONITORING.md and docs/OBSERVABILITY.md."
+    icon: "activity"
 ---
 
 # Architecture
 
-## Notes
+> **AWS alignment:** Production runs `docker/compose.yml` (app only) on EC2. RDS, Upstash Redis, and cloud Kafka are reached via `.env` — see `.env.example` AWS comment block.
 
-- **Danger**: The diagram is **logical** — coordinates are for rendering only, not production network topology.
-- **Danger**: `SecurityConfig` permits **all** `/actuator/**` traffic on its own filter chain; treat actuator as sensitive infrastructure surface area on AWS.
-- **Good**: `PostTransferToLedgerHandler` shows the **paired** `DEBIT`/`CREDIT` `LedgerEntry` construction in one transaction — the invariant to preserve when refactoring.
-- **Missing**: Explicit **outbox table** is not described here; if you move to MSK-only integration, consider outbox pattern for exactly-once publication semantics.
-- **Observation**: Align listener `@TransactionalEventListener` phases in code review whenever a new integration listener is added — this is the main foot-gun for “ghost side-effects.”
-- **Observation**: `bank-config` uses package `io.github.alexisTrejo11` (typo casing) — harmless but confusing when navigating; fix in a dedicated hygiene PR.
+> **Local parity:** `docker/compose.local.yml` bundles postgres, redis, kafka, prometheus, grafana, loki, nginx so developers exercise the same integration paths before deploy.
+
+> **Important:** Domain modules communicate via `ApplicationEvent` (AFTER_COMMIT) and optionally Kafka for notifications — never direct imports of another module's JPA entities.
+
+> **Warning:** Ephemeral JWT keys when PEM env vars unset — multi-instance EC2 deploy requires `BANK_SECURITY_JWT_PRIVATE_KEY_PEM` and `BANK_SECURITY_JWT_PUBLIC_KEY_PEM`.

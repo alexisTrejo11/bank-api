@@ -1,11 +1,21 @@
 # Documentation index
 
+## Project portfolio docs
+
+| Document | Purpose |
+|----------|---------|
+| [project/generated/README.md](project/generated/README.md) | **Hub** — generated readable docs from YAML source |
+| [project/source/](project/source/) | Edit YAML frontmatter here (do not edit `generated/` by hand) |
+| [../README.md](../README.md) | Root README with full documentation navigation |
+
+Regenerate: `python docs/project/yaml_to_markdown.py`
+
 ## Observability
 
 | Document | Purpose |
 |----------|---------|
 | [OBSERVABILITY.md](OBSERVABILITY.md) | Logs (AUDIT/ACCESS files, Loki, Logstash), metrics, local stack |
-| [project/source/Observability.md](project/source/Observability.md) | Detailed design and AWS notes |
+| [project/generated/ProjectInfrastructure.md](project/generated/ProjectInfrastructure.md) | AWS deploy, RDS, Upstash Redis, Kafka, EC2 observability |
 
 ## Cross-cutting Git (monorepo)
 

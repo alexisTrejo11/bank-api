@@ -1,119 +1,148 @@
 ---
 codeExamples:
-  - id: "security-authority-mapping"
-    title: "Route-level RBAC with Spring Security 6"
-    description: "Shows how public auth routes are permitAll, banking routes require explicit authorities, and JwtAuthenticationFilter is registered ahead of UsernamePasswordAuthenticationFilter."
-    category: "security"
-    duration: "3 min read"
-    views: 0
-    tags:
-      - "Spring Security"
-      - "JWT"
-      - "RBAC"
-    files:
-      - name: "SecurityConfig.java"
-        path: "bank-config/src/main/java/io/github/alexisTrejo11/bank/security/SecurityConfig.java"
-        language: "java"
-        highlighted: true
-        explanation: "Second filter chain secures /api/** with authority rules; actuator chain is separate and fully permitted — lock down on AWS."
-        content: |
-          @Bean
-          @Order(2)
-          SecurityFilterChain apiSecurityFilterChain(
-              HttpSecurity http,
-              JwtAuthenticationFilter jwtAuthenticationFilter,
-              CorsConfigurationSource bankCorsConfigurationSource) throws Exception {
-            return http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(c -> c.configurationSource(bankCorsConfigurationSource))
-                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(a -> a
-                    .requestMatchers(
-                        "/api/v1/auth/register",
-                        "/api/v1/auth/login",
-                        "/api/v1/auth/refresh",
-                        "/swagger-ui/**",
-                        "/v3/api-docs/**",
-                        "/.well-known/jwks.json")
-                    .permitAll()
-                    .requestMatchers(HttpMethod.POST, "/api/v1/payments/transfers")
-                    .hasAuthority("payments:write")
-                    .requestMatchers(HttpMethod.GET, "/api/v1/audit/records")
-                    .hasAuthority("audit:read")
-                    .anyRequest().authenticated())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
-          }
-  - id: "double-entry-ledger-handler"
-    title: "Paired ledger rows in one transaction"
-    description: "PostTransferToLedgerHandler loads both accounts, validates currency and status, then saves a DEBIT and CREDIT with the same business reference id."
-    category: "domain"
-    duration: "4 min read"
-    views: 0
-    tags:
-      - "DDD"
-      - "Ledger"
-      - "Transactional"
-    files:
-      - name: "PostTransferToLedgerHandler.java"
-        path: "bank-accounts/src/main/java/io/github/alexistrejo11/bank/accounts/application/handler/command/PostTransferToLedgerHandler.java"
-        language: "java"
-        highlighted: true
-        explanation: "ledgerEntryRepository.savePair keeps the invariant that both legs exist or neither does."
-        content: |
-          @Transactional
-          public void execute(PostTransferToLedgerCommand command) {
-            BankAccount fromAcc = accountRepository.findById(command.from().value())
-                .orElseThrow(() -> new AccountNotFoundException("Source account not found"));
-            BankAccount toAcc = accountRepository.findById(command.to().value())
-                .orElseThrow(() -> new AccountNotFoundException("Target account not found"));
-            if (!fromAcc.currency().equals(ccy) || !toAcc.currency().equals(ccy)) {
-              throw new InvalidTransferException("Currency mismatch between accounts and transfer");
-            }
-            LedgerEntry debit = new LedgerEntry(
-                UUID.randomUUID(), command.from().value(), LedgerEntryType.DEBIT,
-                command.amount(), ccy, command.referenceType(), ref, now);
-            LedgerEntry credit = new LedgerEntry(
-                UUID.randomUUID(), command.to().value(), LedgerEntryType.CREDIT,
-                command.amount(), ccy, command.referenceType(), ref, now);
-            ledgerEntryRepository.savePair(debit, credit);
-          }
-  - id: "payments-idempotency-header"
-    title: "Transfer API with required Idempotency-Key"
-    description: "InitiateTransferHandler is invoked with a UUID idempotency key header so Redis can deduplicate retries from mobile or BFF clients."
+  - id: "api-response-envelope"
+    title: "Standardized API response envelope"
+    description: "All REST endpoints return ApiResponse<T> with data, meta.timestamp, and errors[] for logical failures."
     category: "api"
     duration: "2 min read"
     views: 0
     tags:
-      - "Payments"
-      - "Idempotency"
-      - "REST"
+      - "api"
+      - "shared-kernel"
+      - "openapi"
     files:
-      - name: "TransferController.java"
-        path: "bank-payments/src/main/java/io/github/alexistrejo11/bank/payments/presentation/controller/TransferController.java"
+      - name: "ApiResponse.java"
+        path: "bank-shared/src/main/java/io/github/alexistrejo11/bank/shared/shared_kernel/api/ApiResponse.java"
         language: "java"
         highlighted: true
-        explanation: "Missing header yields framework-level 400; duplicate keys short-circuit to stored outcome when implemented in handler."
+        explanation: "Success and failure factories keep controller responses consistent across modules."
         content: |
-          @PostMapping("/transfers")
-          public ResponseEntity<ApiResponse<?>> transfer(
-              @AuthenticationPrincipal IamUserPrincipal principal,
-              @RequestHeader("Idempotency-Key") UUID idempotencyKey,
-              @Valid @RequestBody TransferFundsRequest request) {
-            var command = new InitiateTransferCommand(
-                principal.userId(), idempotencyKey,
-                request.sourceAccountId(), request.targetAccountId(),
-                request.amount(), request.currency());
-            Result<TransferResponse> result = initiateTransferHandler.handle(command);
-            return toResponse(result);
+          public record ApiResponse<T>(T data, Meta meta, List<ApiError> errors) {
+              public static <T> ApiResponse<T> success(T data) {
+                  return new ApiResponse<>(data, new Meta(Instant.now(), null), List.of());
+              }
+              public static <T> ApiResponse<T> failure(String code, String message) {
+                  return new ApiResponse<>(null, new Meta(Instant.now(), null),
+                      List.of(new ApiError(code, message, null)));
+              }
+          }
+
+  - id: "transfer-idempotency"
+    title: "Transfer initiation with idempotency"
+    description: "Payments check Redis cache and DB before processing — duplicate Idempotency-Key returns cached Result."
+    category: "domain"
+    duration: "4 min read"
+    views: 0
+    tags:
+      - "payments"
+      - "idempotency"
+      - "redis"
+    files:
+      - name: "InitiateTransferHandler.java"
+        path: "bank-payments/src/main/java/io/github/alexistrejo11/bank/payments/application/handler/InitiateTransferHandler.java"
+        language: "java"
+        highlighted: true
+        explanation: "Idempotency-Key header is required; self-transfer and currency rules enforced before state transition."
+        content: |
+          @Transactional
+          public Result<TransferResponse> handle(InitiateTransferCommand command) {
+              Optional<Result<TransferResponse>> cached = idempotencyCache.get(userId, idempotencyKey);
+              if (cached.isPresent()) {
+                  return cached.get();
+              }
+              if (sourceAccountId.equals(targetAccountId)) {
+                  return persistFailure(command, currencyRaw, "SELF_TRANSFER",
+                      "Source and target account must differ");
+              }
+              // ... balance check, state machine, TransferCompletedEvent
+          }
+
+  - id: "redis-rate-limit"
+    title: "Redis token-bucket rate limiter"
+    description: "Atomic Lua script refill + consume in one round trip; fail-open when Redis errors if configured."
+    category: "security"
+    duration: "3 min read"
+    views: 0
+    tags:
+      - "redis"
+      - "rate-limit"
+      - "lua"
+    files:
+      - name: "RedisTokenBucketRateLimiter.java"
+        path: "bank-boot/src/main/java/io/github/alexistrejo11/bank/infrastructure/ratelimit/RedisTokenBucketRateLimiter.java"
+        language: "java"
+        highlighted: true
+        explanation: "Used by GlobalRateLimitFilter and AnnotatedRateLimitInterceptor in docker/AWS profile."
+        content: |
+          public RateLimitDecision tryConsume(String redisKey, int capacity, double refillPerSecond) {
+              List<Long> raw = redis.execute(SCRIPT, Collections.singletonList(redisKey),
+                  List.of(Integer.toString(capacity), Double.toString(refillPerSecond),
+                          Long.toString(System.currentTimeMillis())));
+              if (raw.get(0) == 1L) {
+                  return RateLimitDecision.allowed(raw.get(1));
+              }
+              return RateLimitDecision.denied((int) raw.get(2));
+          }
+
+  - id: "kafka-notification-ingress"
+    title: "Kafka notification dispatch ingress"
+    description: "When dispatch-mode=kafka, notifications are enqueued to cloud broker instead of processed inline."
+    category: "messaging"
+    duration: "3 min read"
+    views: 0
+    tags:
+      - "kafka"
+      - "notifications"
+      - "aws"
+    files:
+      - name: "KafkaNotificationDispatchIngress.java"
+        path: "bank-notifications/src/main/java/io/github/alexistrejo11/bank/notifications/infrastructure/messaging/KafkaNotificationDispatchIngress.java"
+        language: "java"
+        highlighted: true
+        explanation: "Active only when bank.notifications.dispatch-mode=kafka — matches AWS deploy configuration."
+        content: |
+          @ConditionalOnProperty(name = "bank.notifications.dispatch-mode", havingValue = "kafka")
+          public void submit(DispatchNotificationCommand command) {
+              String json = objectMapper.writeValueAsString(NotificationDispatchMessage.from(command));
+              kafkaTemplate.send(dispatchTopic, json).whenComplete((r, ex) -> {
+                  if (ex != null) {
+                      log.warn("notification_dispatch_enqueue_failed topic={}", dispatchTopic, ex);
+                  }
+              });
+          }
+
+  - id: "money-value-object"
+    title: "Money value object"
+    description: "Immutable currency-aware amount with BigDecimal scale 2 — used everywhere financial math is needed."
+    category: "domain"
+    duration: "2 min read"
+    views: 0
+    tags:
+      - "shared-kernel"
+      - "ddd"
+      - "financial"
+    files:
+      - name: "Money.java"
+        path: "bank-shared/src/main/java/io/github/alexistrejo11/bank/shared/shared_kernel/money/Money.java"
+        language: "java"
+        highlighted: true
+        explanation: "Compact constructor rejects negative amounts and normalizes scale — never use double for money."
+        content: |
+          public record Money(BigDecimal amount, Currency currency) {
+              public Money {
+                  Objects.requireNonNull(amount);
+                  Objects.requireNonNull(currency);
+                  if (amount.compareTo(BigDecimal.ZERO) < 0)
+                      throw new InvalidMoneyAmountException(amount);
+                  amount = amount.setScale(2, RoundingMode.HALF_UP);
+              }
           }
 ---
 
-# Code showcase
+# Code Showcase
 
-## Notes
+> Snippets are abbreviated from the repository; open the referenced paths for full implementations including tests.
 
-- **Danger**: The `double-entry-ledger-handler` excerpt omits variable declarations (`ccy`, `ref`, `now`) for brevity — treat it as illustrative; use the repository file for full context.
-- **Good**: Linking `path` to real repository files keeps this portfolio section honest for reviewers.
-- **Missing**: Add a fourth example for **Kafka consumer** or **@TransactionalEventListener** once you stabilize MSK consumer code in-repo.
-- **Observation**: When publishing this YAML to a site that renders code blocks, ensure the renderer supports literal block scalars (`|`) inside front matter or move large `content` fields to external gist URLs later.
+> **Recommended reading order:** ApiResponse envelope → Money value object → transfer idempotency → Kafka notification ingress → Redis rate limiter.
+
+> **AWS context:** Redis and Kafka examples are active when `SPRING_PROFILES_ACTIVE=docker` and corresponding `bank.*.enabled` flags are true — the default local `postgres` profile keeps them off for simpler Maven runs.

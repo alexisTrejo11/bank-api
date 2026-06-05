@@ -1,183 +1,173 @@
 ---
 metrics:
-  - label: "Compose services"
-    value: "11"
-    icon: "🐳"
-    description: "zookeeper, kafka, postgres, redis, elasticsearch, logstash, kibana, prometheus, grafana, app, nginx (see docker/compose.local.yml)"
-  - label: "Actuator health"
-    value: "1"
-    icon: "❤️"
-    description: "Dockerfile HEALTHCHECK curls http://127.0.0.1:8080/actuator/health inside the container"
-  - label: "Spring profiles"
-    value: "4+"
-    icon: "⚙️"
-    description: "default, test, postgres, docker (bank-boot YAML); extend for `aws` when you add account-specific property files"
-  - label: "Hikari default pool"
-    value: "10"
-    icon: "🔗"
-    description: "Spring Boot default maximum pool size unless overridden in YAML"
-  - label: "Nginx zone rate"
-    value: "30 r/s"
-    icon: "🚦"
-    description: "limit_req_zone in infra/nginx/nginx.conf for /api/"
-  - label: "App global bucket (when enabled)"
-    value: "64 @ 1/s"
-    icon: "🪣"
-    description: "RateLimitingProperties.GlobalBucket defaults: capacity 64, refillPerSecond 1.0"
-  - label: "STRICT profile default"
-    value: "12 @ 0.2/s"
-    icon: "🔐"
-    description: "Auth endpoints use RateLimitProfile.STRICT unless overridden in config"
-  - label: "SENSITIVE_OPERATIONS default"
-    value: "6 @ 0.1/s"
-    icon: "🏦"
-    description: "Loan write endpoints use SENSITIVE_OPERATIONS profile"
+  - label: "Container port"
+    value: "8080"
+    icon: "server"
+    description: "Spring Boot embedded Tomcat; exposed in Dockerfile HEALTHCHECK"
+  - label: "Host mapping (deploy)"
+    value: "${APP_HTTP_PORT}:8080"
+    icon: "network"
+    description: "docker/compose.yml publishes API port on EC2 (security group)"
+  - label: "JVM"
+    value: "Java 21 + ZGC"
+    icon: "cpu"
+    description: "Eclipse Temurin JRE Alpine; JAVA_OPTS=-XX:+UseZGC"
+  - label: "Image size target"
+    value: "< 300 MB"
+    icon: "box"
+    description: "Multi-stage build — JRE + single fat JAR only in runtime stage"
+  - label: "Flyway migrations"
+    value: "15"
+    icon: "database"
+    description: "V2–V15 + repeatable R__seed_demo_data.sql"
 
 cloudServices:
-  - name: "Amazon ECS (Fargate)"
-    purpose: "Run `bank-boot` container tasks; auto scaling on CPU/memory; attach to private subnets"
-    icon: "🐳"
-    cost: "Depends on vCPU/GB and task count (on-demand Fargate pricing in your region)"
-  - name: "Application Load Balancer"
-    purpose: "TLS termination with ACM, HTTP health checks to `/actuator/health`, sticky sessions off for stateless API"
-    icon: "⚖️"
-    cost: "LCU-hours + processed bytes"
-  - name: "Amazon RDS for PostgreSQL"
-    purpose: "System of record for accounts, payments, loans, audit, notifications tables"
-    icon: "🐘"
-    cost: "Instance + storage + Multi-AZ multiplier"
-  - name: "Amazon ElastiCache for Redis"
-    purpose: "Shared idempotency, JWT refresh metadata, rate limiting buckets, optional caches"
-    icon: "💾"
-    cost: "Node type × replica count"
-  - name: "Amazon MSK"
-    purpose: "Managed Kafka for notification pipeline and future event-driven extraction"
-    icon: "📨"
-    cost: "Broker hours + storage + data transfer"
-  - name: "AWS Secrets Manager"
-    purpose: "JWT signing keys, DB master credentials, third-party API keys"
-    icon: "🔑"
-    cost: "Per-secret monthly + API calls"
-  - name: "Amazon CloudWatch"
-    purpose: "Logs, metrics, alarms (replace or complement Prometheus/Grafana from Compose)"
-    icon: "📊"
-    cost: "Ingestion + storage + alarms"
-  - name: "Amazon S3"
-    purpose: "Static documentation assets, exported Grafana JSON, forensic exports"
-    icon: "📦"
-    cost: "Storage + requests"
-  - name: "AWS WAF (optional)"
-    purpose: "Rate-based rules and OWASP CRS on ALB for public endpoints"
-    icon: "🛡️"
-    cost: "Web ACL + rule + request charges"
+  - name: "Amazon EC2"
+    purpose: "Runs bank-api Docker container (compose.yml). Optional Nginx reverse proxy. Hosts Prometheus, Grafana, Loki for external observability."
+    icon: "aws-ec2"
+    cost: "~$10–30/mo (t3.micro/small placeholder)"
+  - name: "Amazon RDS (PostgreSQL 16)"
+    purpose: "Primary database — IAM, accounts, ledger, transfers, loans, audit, notifications. SPRING_DATASOURCE_* in .env."
+    icon: "aws-rds"
+    cost: "~$15–50/mo (db.t4g.micro placeholder)"
+  - name: "Upstash Redis"
+    purpose: "JWT refresh tokens, jti blocklist, transfer idempotency cache, token-bucket rate limits. SPRING_DATA_REDIS_* in .env."
+    icon: "redis"
+    cost: "Free tier or ~$10/mo"
+  - name: "Cloud Kafka instance"
+    purpose: "Notification dispatch and pipeline topics (bank.notifications.dispatch, bank.notifications.pipeline). App produces and consumes via SPRING_KAFKA_BOOTSTRAP_SERVERS."
+    icon: "kafka"
+    cost: "Variable (self-hosted VM or managed — placeholder)"
+  - name: "Prometheus (on EC2)"
+    purpose: "Scrapes /actuator/prometheus from app. PROMETHEUS_SCRAPE_TARGET points to app host:port."
+    icon: "prometheus"
+    cost: "Included in EC2 cost"
+  - name: "Grafana + Loki (on EC2)"
+    purpose: "Dashboards and log aggregation. GRAFANA_PROMETHEUS_URL and LOKI_URL configured per deploy."
+    icon: "grafana"
+    cost: "Included in EC2 cost"
+  - name: "SMTP / SMS (optional)"
+    purpose: "Real notification delivery when not using dev stubs. BANK_NOTIFICATIONS_DEV_REDIRECT_EMAIL for safe testing."
+    icon: "mail"
+    cost: "Variable"
 
 deploymentLayers:
-  - name: "Local developer"
-    color: "#4CAF50"
+  - name: "Clients"
+    color: "#4F46E5"
     components:
-      - name: "H2 or local PostgreSQL"
-        icon: "🗄️"
-        description: "Fast feedback; H2 for zero-deps runs; postgres profile for parity with Docker schema"
-      - name: "Maven wrapper"
-        icon: "📦"
-        description: "`./mvnw -pl bank-boot spring-boot:run` from repository root"
-      - name: "Optional local Redis"
-        icon: "💾"
-        description: "Needed for full auth + idempotency behavior outside docker"
+      - name: "REST clients"
+        icon: "terminal"
+        description: "Postman, curl, or future web/mobile frontend consuming /api/v1/*"
+      - name: "Swagger UI"
+        icon: "book-open"
+        description: "Interactive API explorer at /swagger-ui.html"
 
-  - name: "Docker Compose (parity / demo host)"
-    color: "#2196F3"
+  - name: "Edge & compute (EC2)"
+    color: "#059669"
     components:
-      - name: "PostgreSQL 16"
-        icon: "🐘"
-        description: "Primary database with health-checked startup; credentials from `.env`"
-      - name: "Redis 7"
-        icon: "💾"
-        description: "Sessions, idempotency, rate limits when enabled"
-      - name: "ZooKeeper + Kafka 7.5"
-        icon: "📨"
-        description: "Confluent images; broker `kafka:9092` on internal network"
-      - name: "nginx 1.25"
-        icon: "🌐"
-        description: "Reverse proxy on port 80 → `app:8080`; rate limit zone `30r/s` for `/api/`"
-      - name: "Prometheus + Grafana"
-        icon: "📈"
-        description: "Metrics stack; Grafana provisions dashboards from `infra/grafana/provisioning`"
-      - name: "Loki + Promtail"
-        icon: "🔍"
-        description: "Log aggregation; Promtail tails `logs/audit.json` and `logs/access.json`"
-      - name: "Elasticsearch + Logstash + Kibana (optional)"
-        icon: "📋"
-        description: "Compose profile `elk`; Logstash pipeline filters DEBUG/actuator noise"
+      - name: "Nginx (optional)"
+        icon: "globe"
+        description: "TLS termination and reverse proxy to app:8080 (local: compose.local.yml nginx on :80)"
+      - name: "Docker — bank-api app"
+        icon: "docker"
+        description: "Built from docker/Dockerfile; SPRING_PROFILES_ACTIVE=docker; restart unless-stopped"
+      - name: "Observability agents"
+        icon: "activity"
+        description: "Prometheus, Grafana, Loki, Promtail on EC2 (or same compose.local.yml stack locally)"
 
-  - name: "AWS production (target)"
-    color: "#FF9800"
+  - name: "Managed data & messaging"
+    color: "#DC2626"
     components:
-      - name: "ECS Fargate service"
-        icon: "🐳"
-        description: "Same container image as local Docker build; environment from task definition + Secrets Manager"
-      - name: "ALB + ACM"
-        icon: "🔐"
-        description: "Public HTTPS; forward `X-Forwarded-*` headers — Spring forwarded header strategy must stay enabled"
-      - name: "RDS PostgreSQL Multi-AZ"
-        icon: "🐘"
-        description: "Automated backups, parameter groups tuned for JDBC batch sizes used by JPA"
-      - name: "ElastiCache Redis replication group"
-        icon: "💾"
-        description: "Multi-AZ with automatic failover for coordination state"
-      - name: "MSK"
-        icon: "📨"
-        description: "Private SASL/SCRAM or IAM auth; security groups only from ECS tasks"
-      - name: "CloudWatch + (optional) OpenSearch"
-        icon: "📊"
-        description: "Central logs/metrics; OpenSearch if you need Compose-like ad hoc search"
+      - name: "RDS PostgreSQL"
+        icon: "database"
+        description: "External — not in production compose.yml. Flyway applies schema on startup."
+      - name: "Upstash Redis"
+        icon: "redis"
+        description: "External TLS Redis — tokens, idempotency, rate limits"
+      - name: "Cloud Kafka"
+        icon: "kafka"
+        description: "External broker — notification dispatch consumed by bank-notifications module"
+      - name: "App logs volume"
+        icon: "folder"
+        description: "BANK_LOGGING_DIRECTORY=/app/logs — audit.json, access.json; Promtail ships to Loki"
+
+  - name: "Local-only (compose.local.yml)"
+    color: "#D97706"
+    components:
+      - name: "Containerized Postgres"
+        icon: "database"
+        description: "postgres:16-alpine for dev — not used in AWS production deploy"
+      - name: "Containerized Redis + Kafka"
+        icon: "layers"
+        description: "Local kafka:9092 and redis for parity testing before cloud cutover"
+      - name: "Optional ELK profile"
+        icon: "search"
+        description: "docker compose --profile elk — Elasticsearch, Logstash, Kibana"
 
 dockerFiles:
-  - service: "bank-api (multi-stage)"
-    description: "Root Dockerfile builds `bank-boot` fat JAR with Maven inside Temurin JDK 21 Alpine, runs as non-root `bank` user with ZGC and curl-based healthcheck."
+  - service: "compose.yml (deploy / EC2)"
+    description: "Single app service — Postgres, Redis, and Kafka are external cloud instances configured via repo-root .env."
     content: |
-      # Multi-stage build — final image target < ~300MB (JRE + single fat JAR).
-      # Build from repo root: docker build -t bank-api:local .
+      name: bank-api
+      services:
+        app:
+          build:
+            context: ..
+            dockerfile: docker/Dockerfile
+          image: bank-api:${BANK_API_IMAGE_TAG}
+          env_file:
+            - ../.env
+          environment:
+            SPRING_PROFILES_ACTIVE: docker
+          ports:
+            - "${APP_HTTP_PORT}:8080"
+          restart: unless-stopped
+      # External: RDS PostgreSQL + Upstash Redis + Cloud Kafka
+      # Observability: Prometheus/Grafana/Loki on EC2 (see docker/MONITORING.md)
 
+  - service: "Dockerfile (multi-stage)"
+    description: "JDK 21 Alpine builder runs mvn package; JRE 21 Alpine runtime runs as non-root bank user."
+    content: |
       FROM eclipse-temurin:21-jdk-alpine AS builder
-      WORKDIR /build
-      RUN apk add --no-cache bash
-      COPY mvnw mvnw.cmd ./
-      COPY .mvn .mvn
-      COPY pom.xml ./
-      COPY bank-shared/pom.xml bank-shared/
-      COPY bank-iam/pom.xml bank-iam/
-      COPY bank-accounts/pom.xml bank-accounts/
-      COPY bank-audit/pom.xml bank-audit/
-      COPY bank-payments/pom.xml bank-payments/
-      COPY bank-loans/pom.xml bank-loans/
-      COPY bank-notifications/pom.xml bank-notifications/
-      COPY bank-boot/pom.xml bank-boot/
-      RUN chmod +x mvnw && ./mvnw -q -B dependency:go-offline -DskipTests || true
-      COPY . .
-      RUN ./mvnw -q -B -pl bank-boot -am package -DskipTests
-
+      RUN ./mvnw -pl bank-boot -am package -DskipTests
       FROM eclipse-temurin:21-jre-alpine
-      WORKDIR /app
-      RUN apk add --no-cache curl \
-      	&& addgroup -S bank && adduser -S bank -G bank
-      COPY --from=builder /build/bank-boot/target/bank-boot-*.jar app.jar
       USER bank
       EXPOSE 8080
       ENV JAVA_OPTS="-XX:+UseZGC"
-      HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
-      	CMD curl -fsS http://127.0.0.1:8080/actuator/health >/dev/null || exit 1
+      HEALTHCHECK CMD curl -fsS http://127.0.0.1:8080/actuator/health
       ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]
+
+  - service: "compose.local.yml (dev full stack)"
+    description: "postgres, redis, kafka, prometheus, grafana, loki, promtail, nginx, app — for local integration testing."
+    content: |
+      services:
+        postgres:   # postgres:16-alpine
+        redis:      # redis:7-alpine
+        kafka:      # confluentinc/cp-kafka:7.5.0
+        prometheus: # scrapes app:8080/actuator/prometheus
+        grafana:    # dashboards + Loki datasource
+        loki:       # log aggregation
+        app:        # bank-api Spring Boot
+        nginx:      # :80 → app:8080
 ---
 
 # Infrastructure
 
-## Notes
+> **Deploy story:** Build image on EC2 or CI → copy `.env` with RDS/Upstash/Kafka endpoints → `./docker/validate-env.sh app` → `docker compose --env-file .env -f docker/compose.yml up -d --build`.
 
-- **Danger**: Compose **nginx listens on port 80 without TLS**; this is acceptable for local/VPS demos only. Production on AWS must use **ALB + ACM** (or CloudFront) for TLS.
-- **Danger**: Grafana defaults (`GF_SECURITY_ADMIN_PASSWORD`) in Compose are weak; rotate for any shared host and never expose Grafana publicly without auth hardening.
-- **Good**: `app` service `expose`s port 8080 only — not published on the host; **nginx is the intended entry** (plus published tool ports like 9090/3000/5601 per compose).
-- **Good**: Dockerfile runs as non-root and uses a **HEALTHCHECK** compatible with ECS health checks (map to ALB target group health check path `/actuator/health`).
-- **Missing**: No `bank.conf` verification in this doc run — confirm `infra/logstash/pipeline` exists before relying on Logstash in CI.
-- **Observation**: `BANK_KAFKA_ENABLED` defaults to `false` in compose environment; domain events may still be in-process while Kafka is used selectively (e.g. notifications) — verify `application-docker.yaml` for exact flags.
-- **Observation**: The builder stage copies only a subset of `pom.xml` files before `dependency:go-offline`; **`bank-config/pom.xml` is not in that list** (modules that transitively need it still resolve after `COPY . .`). If go-offline ever fails in CI, add `COPY bank-config/pom.xml bank-config/` alongside the others.
+> **AWS `.env` example (from .env.example):**
+> ```
+> SPRING_DATASOURCE_URL=jdbc:postgresql://your-rds.region.rds.amazonaws.com:5432/at_bank
+> SPRING_DATA_REDIS_HOST=your-upstash-host.upstash.io
+> SPRING_KAFKA_BOOTSTRAP_SERVERS=your-kafka-host:9092
+> BANK_KAFKA_ENABLED=true
+> BANK_NOTIFICATIONS_DISPATCH_MODE=kafka
+> ```
+
+> **Observability on EC2:** Spring exposes `/actuator/prometheus` only — it does not know Grafana URLs. Prometheus scrapes the app; Grafana reads Prometheus and Loki. See [docker/MONITORING.md](../../../docker/MONITORING.md).
+
+> **EC2 checklist:** Open APP_HTTP_PORT (or 443 behind Nginx), restrict RDS/Redis/Kafka security groups to EC2 SG only, store secrets in SSM or sealed `.env`, set JWT PEM keys for multi-instance deploy.
+
+> **Dangerous:** Never commit `.env` with RDS passwords or Upstash tokens. `R__seed_demo_data.sql` is for demos — review before production.
+
+> **Useful:** Local cutover test — run infra only (`docker compose -f docker/compose.local.yml up -d postgres redis kafka`) and point a local Maven run at those hosts before switching EC2 `.env` to cloud endpoints.

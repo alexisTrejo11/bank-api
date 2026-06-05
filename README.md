@@ -1,254 +1,314 @@
 # Bank API
 
-A production-ready modular monolith banking API built with Java 21, Spring Boot 4, and Hexagonal Architecture.
+Minimalist modular-monolith banking REST API — IAM, double-entry accounts, idempotent transfers, loans, append-only audit, and async notifications. **Deployed on AWS EC2** with **Amazon RDS PostgreSQL**, **Upstash Redis**, and **Kafka** consumed from a cloud broker; **Prometheus, Grafana, and Loki** on EC2 for external observability.
 
-![Java](https://img.shields.io/badge/Java-21-orange)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.5-brightgreen)
-![License](https://img.shields.io/badge/License-MIT-blue)
-![Status](https://img.shields.io/badge/Status-Active-success)
+[![Java 21](https://img.shields.io/badge/Java-21-orange)](https://openjdk.org/)
+[![Spring Boot 4](https://img.shields.io/badge/Spring%20Boot-4.0.5-brightgreen)](https://spring.io/projects/spring-boot)
 
-## Overview
+---
 
-Bank API is a comprehensive banking system implementing:
-- **Identity & Access Management** — JWT authentication with RS256, refresh tokens, RBAC
-- **Accounts** — Double-entry bookkeeping with immutable ledger
-- **Payments** — Idempotent transfers between accounts
-- **Loans** — Loan origination with amortization schedules
-- **Notifications** — Email/SMS async dispatch
-- **Audit** — Immutable event log for compliance
+## Table of contents
 
-## Quick Start
+- [About](#about)
+- [Features](#features)
+- [Documentation](#documentation)
+- [Tech stack](#tech-stack)
+- [Architecture at a glance](#architecture-at-a-glance)
+- [Prerequisites](#prerequisites)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [API overview](#api-overview)
+- [Project structure](#project-structure)
+- [Deployment](#deployment)
+- [Testing](#testing)
+- [Maintaining documentation](#maintaining-documentation)
+- [Contributing](#contributing)
+- [Security & compliance](#security--compliance)
+- [License](#license)
 
-### Prerequisites
+---
 
-- Java 21+
-- Maven 3.9+
-- Docker & Docker Compose (for full stack)
+## About
 
-### Build & Run (Development)
+Bank API is a **portfolio-grade educational banking backend** built as a Spring Boot modular monolith. Nine Maven modules (`bank-shared` through `bank-boot`) implement IAM with JWT, ledger-based accounts, payment transfers with idempotency, loan amortization, immutable audit, and event-driven notifications.
 
-```bash
-# Clone and build
-git clone https://github.com/alexistrejo11/bank-api.git
-cd bank-api
+The project is intentionally **minimalist but production-shaped**: it runs in Docker on **AWS EC2**, connects to **RDS** for persistence, **Upstash Redis** for tokens/idempotency/rate limits, and a **cloud Kafka** instance for notification dispatch. Observability (metrics + logs) is handled by **Prometheus, Grafana, and Loki** running on EC2 — not embedded in the Spring app.
 
-# Run with H2 in-memory database (default)
-./mvnw clean verify
-./mvnw -pl bank-boot spring-boot:run
-```
+| | |
+|---|---|
+| **Version** | 0.3.0 |
+| **Status** | Stable (portfolio / educational) |
+| **Primary API prefix** | `/api/v1/` |
+| **Live / health check** | [{{YOUR_DOMAIN}}/actuator/health](https://{{YOUR_DOMAIN_OR_EC2}}/actuator/health) |
+| **OpenAPI (Swagger)** | [{{YOUR_DOMAIN}}/swagger-ui.html](https://{{YOUR_DOMAIN_OR_EC2}}/swagger-ui.html) |
 
-### Run with PostgreSQL + Redis + Kafka
+---
 
-```bash
-# 1. Copy environment file
-cp .env.example .env
+## Features
 
-# 2. Set required values in .env (POSTGRES_PASSWORD, etc.)
+Short list for the README; full detail lives in generated docs.
 
-# 3. Start local stack (or only infra you need — see docker/README.md)
-docker compose --env-file .env -f docker/compose.local.yml up -d postgres redis kafka
+- JWT auth (RS256) with Redis refresh rotation, blocklist, and RBAC permissions
+- Double-entry ledger accounts — balance derived, never stored
+- Idempotent transfers with state machine and reversal support
+- Loan origination, approval, amortization schedule, and repayments
+- Append-only audit trail (DB trigger + JSONB payloads)
+- Kafka-backed notification dispatch (cloud broker in AWS; local Kafka in dev)
+- Redis token-bucket rate limiting in docker/AWS profile
+- Prometheus metrics + structured audit/access logs + Loki shipping
 
-# 4. Run with docker profile
-./mvnw -pl bank-boot spring-boot:run -Dspring-profiles.active=docker
-```
+See [Project Features](docs/project/generated/ProjectFeature.md) for the complete feature breakdown.
 
-### Access Points
-
-| Service | URL | Credentials |
-|---------|-----|--------------|
-| API | http://localhost:8080 | — |
-| Swagger UI | http://localhost:8080/swagger-ui.html | JWT (Authorize button) |
-| API Docs (JSON) | http://localhost:8080/api-docs | — |
-| Actuator Health | http://localhost:8080/actuator/health | — |
-| Prometheus Metrics | http://localhost:8080/actuator/prometheus | — |
-| Grafana (local stack) | http://localhost:3000 | see `.env` `GRAFANA_ADMIN_*` |
-
-Observability (structured JSON logs, `AUDIT`/`ACCESS` files with rotation, Loki, Prometheus): see [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
-
-## Project Structure
-
-```
-bank-api/
-├── bank-shared/           # Shared kernel (value objects, events, Result<T>)
-├── bank-iam/              # Identity & Access Management
-├── bank-accounts/         # Accounts & Ledger
-├── bank-payments/        # Transfers & Idempotency
-├── bank-loans/           # Loans & Amortization
-├── bank-notifications/   # Email & SMS dispatch
-├── bank-audit/           # Immutable audit records
-├── bank-config/          # Cross-cutting security & shared web config
-├── bank-boot/            # Spring Boot application
-├── docs/                 # Documentation
-│   ├── project/          # Project documentation
-│   └── v0.2.0/          # Configuration guides
-├── docker/               # Dockerfile, Compose, nginx/prometheus/grafana
-└── pom.xml               # Parent POM
-```
-
-## Architecture
-
-### Hexagonal Architecture (Ports & Adapters)
-
-Each module follows identical package structure:
-
-```
-{module}/
-├── presentation/   → REST controllers, DTOs, mappers (some modules may still say api/ in older docs)
-├── application/   → Command/Query handlers
-├── domain/          → Entities, value objects, ports
-└── infrastructure/→ JPA repositories, event listeners, adapters
-```
-
-### Key Patterns
-
-| Pattern | Implementation |
-|---------|----------------|
-| Double-Entry Bookkeeping | Every transfer creates two LedgerEntry rows (debit + credit) |
-| Event-Driven | ApplicationEvents trigger cross-module side-effects |
-| Idempotency | UUID keys cached in Redis with 24h TTL |
-| Rate Limiting | Token bucket algorithm (global + per-user profiles) |
-| Result<T> | Explicit error handling with sealed Result interface |
-
-## API Endpoints
-
-All versioned REST routes live under **`/api/v1`**. Full reference (methods, bodies, headers such as **`Idempotency-Key`**, authorities, and response patterns) is maintained in **[docs/project/APISchema.md](docs/project/APISchema.md)**.
-
-| Area | Examples |
-|------|-----------|
-| Auth | `POST .../auth/register`, `login`, `refresh`, `logout`, `GET .../auth/me` |
-| Accounts | `POST .../accounts`, `GET .../accounts/{id}/balance`, `.../ledger` |
-| Payments | `POST .../payments/transfers`, `POST .../payments/transfers/{id}/reverse` |
-| Loans | `POST .../loans`, `POST .../loans/{id}/approve`, `GET .../loans/{id}`, pay repayment |
-| Audit | `GET .../audit/records` |
-| Notifications | `GET .../notifications/monitoring/records`, `.../summary` |
+---
 
 ## Documentation
 
-### Project Documentation (`docs/project/`)
+This repository keeps **structured source** in `docs/project/source/` (YAML frontmatter + notes) and **human-readable docs** in `docs/project/generated/`, produced by `docs/project/yaml_to_markdown.py`. The TypeScript contract for portfolio tools is `docs/project/source/schema.ts`.
 
-Start here: **[docs/project/README.md](docs/project/README.md)** — hub page linking all human-readable docs. Machine-readable YAML for tooling lives in **[docs/project/source/](docs/project/source/)** (schema: [`TypescriptSchema.md`](docs/project/source/TypescriptSchema.md)).
+### Documentation index
 
-| Document | Description |
-|----------|-------------|
-| [README.md](docs/project/README.md) | Documentation hub and conventions |
-| [ProjectMetadata.md](docs/project/ProjectMetadata.md) | Version, status, tech stack, modules |
-| [ProjectOverview.md](docs/project/ProjectOverview.md) | Problem statement, solution, metrics |
-| [ProjectFeatures.md](docs/project/ProjectFeatures.md) | Nine feature areas with status and highlights |
-| [ProjectArchitectureModel.md](docs/project/ProjectArchitectureModel.md) | Layers, patterns, AWS-shaped diagram, data flows, ADRs |
-| [InfrastructureModel.md](docs/project/InfrastructureModel.md) | Local, Docker Compose, AWS, Dockerfile |
-| [APISchema.md](docs/project/APISchema.md) | REST API reference |
-| [ProjectCodeShowCase.md](docs/project/ProjectCodeShowCase.md) | Annotated code excerpts |
-| [ProjectMetric.md](docs/project/ProjectMetric.md) | Product and infra metrics |
-| [ProjectLinks.md](docs/project/ProjectLinks.md) | Repository, docs tree, demo placeholders |
-| [MediaGallerySection.md](docs/project/MediaGallerySection.md) | Screenshot / diagram placeholders |
+| Document | What you will find | Read |
+|----------|-------------------|------|
+| **Overview** | Problem, solution, metrics, links, AWS deploy context | [ProjectOverview.md](docs/project/generated/ProjectOverview.md) |
+| **Metadata** | Project id, version, tech stack, URLs | [ProjectMetadata.md](docs/project/generated/ProjectMetadata.md) |
+| **API schema** | Endpoints, auth, rate limits, examples | [APISchema.md](docs/project/generated/APISchema.md) |
+| **Architecture** | Layers, patterns, diagram, data flows | [ProjectArchitecture.md](docs/project/generated/ProjectArchitecture.md) |
+| **Infrastructure** | Docker, EC2, RDS, Upstash Redis, Kafka, observability | [ProjectInfrastructure.md](docs/project/generated/ProjectInfrastructure.md) |
+| **Features** | Feature cards, snippets, status per area | [ProjectFeature.md](docs/project/generated/ProjectFeature.md) |
+| **Code showcase** | Curated code examples from the codebase | [ProjectCodeShowCase.md](docs/project/generated/ProjectCodeShowCase.md) |
+| **Generated index** | Auto-generated hub linking all of the above | [docs/project/generated/README.md](docs/project/generated/README.md) |
 
-### Configuration Guides
+### Additional guides
 
-| Document | Description |
-|----------|-------------|
-| [docs/v0.2.0/CONFIGURATION.md](docs/v0.2.0/CONFIGURATION.md) | Environment variables |
-| [docs/v0.2.0/DATABASE.md](docs/v0.2.0/DATABASE.md) | Database setup |
-| [docs/v0.2.0/ROADMAP.md](docs/v0.2.0/ROADMAP.md) | Planned improvements |
+| Document | Purpose |
+|----------|---------|
+| [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) | Logs, metrics, Loki, local stack quick start |
+| [docker/MONITORING.md](docker/MONITORING.md) | Prometheus/Grafana wiring (local vs AWS) |
+| [docker/README.md](docker/README.md) | Compose files, validate-env, build commands |
+| [docs/v0.2.0/CONFIGURATION.md](docs/v0.2.0/CONFIGURATION.md) | Environment variables and Spring profiles |
 
-## Tech Stack
+### Source vs generated
 
-| Category | Technology |
-|----------|------------|
-| Runtime | Java 21 |
-| Framework | Spring Boot 4.0.5 |
-| Architecture | Hexagonal / Modular Monolith |
-| Security | Spring Security 6 + JWT RS256 |
-| Database | PostgreSQL 16 / H2 (dev) |
-| Cache | Redis 7 |
-| Messaging | Kafka (Confluent in Compose; MSK on AWS) |
-| API Docs | SpringDoc OpenAPI |
-| Metrics | Micrometer + Prometheus |
-| Logs | Logback JSON → Elasticsearch → Kibana |
-| Testing | JUnit 5 + Testcontainers |
-| Build | Maven 3.9 |
-
-## Configuration
-
-### Environment Variables
-
-Key variables (see `.env.example` for full list):
+| Path | Purpose |
+|------|---------|
+| `docs/project/source/*.md` | Edit YAML frontmatter here (machine-friendly, matches `schema.ts`) |
+| `docs/project/generated/*.md` | Read here on GitHub / in the IDE (do not edit by hand) |
+| `docs/project/yaml_to_markdown.py` | Regenerates `docs/project/generated/` from `docs/project/source/` |
 
 ```bash
-# Database
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/bank
-SPRING_DATASOURCE_USERNAME=bank_user
-SPRING_DATASOURCE_PASSWORD=your_password
-
-# Redis
-SPRING_DATA_REDIS_HOST=localhost
-SPRING_DATA_REDIS_PORT=6379
-
-# JWT Keys (PEM format)
-BANK_SECURITY_JWT_PRIVATE_KEY_PEM=-----BEGIN RSA PRIVATE KEY-----
-BANK_SECURITY_JWT_PUBLIC_KEY_PEM=-----BEGIN PUBLIC KEY-----
+python3 -m venv /tmp/bank-docs-venv
+source /tmp/bank-docs-venv/bin/activate
+pip install pyyaml
+python docs/project/yaml_to_markdown.py
+deactivate && rm -rf /tmp/bank-docs-venv
 ```
 
-### Profiles
+---
 
-| Profile | Description |
-|---------|-------------|
-| `default` | H2 in-memory, no Redis/Kafka |
-| `test` | H2 + testcontainers |
-| `postgres` | PostgreSQL, no Redis/Kafka |
-| `docker` | Full stack (PostgreSQL + Redis + Kafka) |
+## Tech stack
 
-## Docker
+- **Java 21** — records, pattern matching, ZGC in Docker
+- **Spring Boot 4.0.5** — Web, Security, Data JPA, Kafka, Actuator
+- **Spring Modulith 2.0.5** — module boundaries and events
+- **PostgreSQL 16** — Amazon RDS in production; containerized locally
+- **Upstash Redis** — refresh tokens, blocklist, idempotency, rate limits
+- **Apache Kafka** — notification dispatch (cloud instance in AWS)
+- **Flyway** — 15 schema migrations
+- **springdoc-openapi** — Swagger UI at `/swagger-ui.html`
+- **Docker** — multi-stage Temurin 21 JRE image
+- **Prometheus + Grafana + Loki** — external observability on EC2
 
-See **[docker/README.md](docker/README.md)**.
+---
+
+## Architecture at a glance
+
+Modular monolith: each `bank-*` module follows `api → application → domain ← infrastructure`. Cross-module integration uses `ApplicationEvent` (AFTER_COMMIT) and, in the docker/AWS profile, **Kafka** for notification dispatch. Production runs a single app container on EC2; data services are external.
+
+```mermaid
+flowchart LR
+  Client[API clients] --> EC2[EC2 — Bank API Docker]
+  EC2 --> RDS[(Amazon RDS PostgreSQL)]
+  EC2 --> Redis[(Upstash Redis)]
+  EC2 --> Kafka[Cloud Kafka broker]
+  Kafka --> EC2
+  Prometheus[Prometheus on EC2] --> EC2
+  Grafana[Grafana + Loki on EC2] --> Prometheus
+```
+
+Full diagram, layers, and decisions: [ProjectArchitecture.md](docs/project/generated/ProjectArchitecture.md).
+
+---
+
+## Prerequisites
+
+- **Java 21** and **Maven 3.9+** (or use `./mvnw`)
+- **Docker & Docker Compose** for container deploy and local full stack
+- **PostgreSQL**, **Redis**, and **Kafka** — external in production (RDS, Upstash, cloud broker); bundled in `docker/compose.local.yml` for dev
+- Copy [`.env.example`](.env.example) to `.env` and fill all values (`./docker/validate-env.sh` helps)
+
+---
+
+## Quick start
+
+### Local development (Maven)
 
 ```bash
-# App only (external DB / Redis / Kafka via .env)
-docker compose --env-file .env -f docker/compose.yml up -d --build
+git clone https://github.com/alexisTrejo11/bank-api
+cd bank-api
+cp .env.example .env   # adjust for local postgres profile or infra-only Docker
 
-# Full local stack
+# Optional: start infra only
+docker compose --env-file .env -f docker/compose.local.yml up -d postgres redis kafka
+
+./mvnw -pl bank-boot -am spring-boot:run
+```
+
+- Health: http://127.0.0.1:8080/actuator/health
+- Swagger: http://127.0.0.1:8080/swagger-ui.html
+
+### Docker — local full stack
+
+```bash
+cp .env.example .env
+./docker/validate-env.sh local
 docker compose --env-file .env -f docker/compose.local.yml up -d --build
 ```
 
-## Security
+- API (via nginx): http://localhost:${NGINX_HTTP_PORT:-80}
+- Grafana: http://localhost:${GRAFANA_PORT:-3000}
+- Prometheus: http://localhost:${PROMETHEUS_PORT:-9090}
 
-- **JWT**: RS256 asymmetric keys, 15-minute access tokens
-- **Refresh Tokens**: 7-day TTL in Redis with rotation
-- **RBAC**: Roles → Permissions → Endpoint authorization
-- **Rate Limiting**: Global per-IP + per-user profiles
-- **Audit**: Immutable append-only records
+### Docker — production / EC2 (app only)
+
+```bash
+cp .env.example .env   # point to RDS, Upstash Redis, cloud Kafka
+./docker/validate-env.sh app
+docker compose --env-file .env -f docker/compose.yml up -d --build
+```
+
+API on host port **`${APP_HTTP_PORT}`** → container **8080**. See [ProjectInfrastructure.md](docs/project/generated/ProjectInfrastructure.md).
+
+---
+
+## Configuration
+
+Copy `.env.example` to `.env`. Minimum variables for AWS/docker deploy:
+
+| Variable | Description |
+|----------|-------------|
+| `SPRING_DATASOURCE_*` | Amazon RDS PostgreSQL JDBC URL, user, password |
+| `SPRING_DATA_REDIS_*` | Upstash Redis host, port, password |
+| `SPRING_KAFKA_BOOTSTRAP_SERVERS` | Cloud Kafka broker address |
+| `BANK_KAFKA_ENABLED` | `true` to enable Kafka integration |
+| `BANK_NOTIFICATIONS_DISPATCH_MODE` | `kafka` for AWS notification pipeline |
+| `BANK_SECURITY_JWT_*_PEM` | RSA key pair for stable JWT across restarts |
+| `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` | e.g. `health,info,prometheus` |
+| `APP_HTTP_PORT` | Host port for EC2 security group |
+
+Full list: [.env.example](.env.example) and [docs/v0.2.0/CONFIGURATION.md](docs/v0.2.0/CONFIGURATION.md).
+
+---
+
+## API overview
+
+| Area | Base path | Doc |
+|------|-----------|-----|
+| Auth | `/api/v1/auth/` | [APISchema.md](docs/project/generated/APISchema.md) |
+| Accounts | `/api/v1/accounts/` | [APISchema.md](docs/project/generated/APISchema.md) |
+| Payments | `/api/v1/payments/` | [APISchema.md](docs/project/generated/APISchema.md) |
+| Loans | `/api/v1/loans/` | [APISchema.md](docs/project/generated/APISchema.md) |
+| Audit | `/api/v1/audit/` | [APISchema.md](docs/project/generated/APISchema.md) |
+| Notifications | `/api/v1/notifications/monitoring/` | [APISchema.md](docs/project/generated/APISchema.md) |
+| Service | `/actuator/health`, `/swagger-ui.html` | [APISchema.md](docs/project/generated/APISchema.md) |
+
+Authentication: `Authorization: Bearer <access_token>` (RS256 JWT). Payments require `Idempotency-Key: <UUID>` header.
+
+---
+
+## Project structure
+
+```
+bank-api/
+├── bank-shared/          # Money, IDs, events, ApiResponse, OpenAPI keys
+├── bank-iam/             # Auth, JWT, RBAC
+├── bank-accounts/        # Accounts, ledger
+├── bank-payments/        # Transfers, idempotency
+├── bank-loans/           # Origination, repayments
+├── bank-audit/           # Append-only audit
+├── bank-notifications/   # Email/SMS, Kafka dispatch
+├── bank-config/          # Security, CORS, exception handling
+├── bank-boot/            # Spring Boot entry, Flyway migrations, infra wiring
+├── docker/               # Dockerfile, compose.yml, compose.local.yml, monitoring
+├── docs/
+│   ├── project/
+│   │   ├── source/       # YAML source docs (edit these)
+│   │   ├── generated/    # Readable Markdown (generated)
+│   │   └── yaml_to_markdown.py
+│   └── OBSERVABILITY.md
+├── .agents/              # Architecture and domain reference for agents
+└── pom.xml
+```
+
+---
+
+## Deployment
+
+**Current production layout:** single **EC2** instance runs `docker/compose.yml` (app container only). **RDS PostgreSQL**, **Upstash Redis**, and a **cloud Kafka** broker are external services configured via `.env`. **Prometheus, Grafana, and Loki** run on EC2 (or a companion instance) and scrape `/actuator/prometheus` plus ship logs from `/app/logs`.
+
+Replace `{{YOUR_DOMAIN_OR_EC2}}` placeholders in docs and README with your real hostname once published.
+
+Details: [ProjectInfrastructure.md](docs/project/generated/ProjectInfrastructure.md) · [docker/MONITORING.md](docker/MONITORING.md).
+
+---
 
 ## Testing
 
 ```bash
-# Run all tests
 ./mvnw verify
-
-# Run specific module tests
-./mvnw -pl bank-iam test
-
-# Run integration tests only
-./mvnw -pl bank-boot verify -DskipTests=false
+# Integration tests in bank-boot (NotificationsMonitoringIT, PaymentsModuleIT, …)
 ```
-
-## Future Enhancements
-
-See [docs/v0.2.0/ROADMAP.md](docs/v0.2.0/ROADMAP.md) for planned features:
-
-- AWS cloud deployment (RDS, ElastiCache, MSK)
-- Circuit breaker for external services
-- Enhanced observability with custom metrics
-- API Gateway for centralized auth
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Author
-
-**Alexis Trejo**
-- GitHub: [@alexistrejo11](https://github.com/alexistrejo11)
-- Repository: https://github.com/alexistrejo11/bank-api
 
 ---
 
-*For detailed technical documentation, see the `docs/` directory.*
+## Maintaining documentation
+
+1. Edit YAML in `docs/project/source/<Section>.md` (keep fields aligned with `docs/project/source/schema.ts`).
+2. Run `python docs/project/yaml_to_markdown.py` (see [Documentation](#documentation) for venv one-liner).
+3. Commit both `docs/project/source/` and `docs/project/generated/` if you want docs visible on GitHub without running the script.
+
+Optional notes that are not part of the schema (warnings, AWS tips) go in the **Markdown body** below the closing `---` in each source file — they appear under **Additional notes** in generated files.
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-change`)
+3. Commit with clear messages (see [docs/v0.1.0/PR_CONVENTIONS.md](docs/v0.1.0/PR_CONVENTIONS.md))
+4. Open a pull request
+
+For monorepo module commits, see [docs/MONOREPO_ATOMIC_COMMITS.md](docs/MONOREPO_ATOMIC_COMMITS.md).
+
+---
+
+## Security & compliance
+
+This is an **educational / portfolio API** — not licensed banking software. It implements JWT auth, RBAC, append-only audit, and idempotent payments, but is **not** certified for regulated financial use without formal security review.
+
+Report vulnerabilities privately to the repository owner via GitHub Security Advisories.
+
+---
+
+## License
+
+See [LICENSE](LICENSE) file if present; otherwise contact the repository owner.
+
+---
+
+## Links
+
+| Resource | URL |
+|----------|-----|
+| Repository | [https://github.com/alexisTrejo11/bank-api](https://github.com/alexisTrejo11/bank-api) |
+| Documentation hub | [docs/project/generated/README.md](docs/project/generated/README.md) |
+| Demo / health | [https://{{YOUR_DOMAIN_OR_EC2}}/actuator/health](https://{{YOUR_DOMAIN_OR_EC2}}/actuator/health) |

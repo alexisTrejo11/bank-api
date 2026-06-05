@@ -1,24 +1,3 @@
-# All the docs generate MUST match this ts interface
-
-```typescript
-export interface Project {
-  projectId: string;
-  featured: boolean;
-  name: string;
-  language: string;
-  category: "backend" | "frontend" | "fullstack" | "devops";
-  framework: string;
-  version: string;
-  repositoryUrl: string;
-  liveDemoUrl: string | null;
-  description: string;
-  techStack: string[];
-  status: "develop" | "deployed" | "archived";
-  createdAt: Date;
-  updatedAt: Date;
-  docs: ProjectDocsModel;
-}
-
 export interface ProjectDocsModel {
   codeShowcase: ProjectCodeShowCase;
   overview: ProjectOverview;
@@ -33,27 +12,16 @@ export interface ProjectOverview {
   problemStatement: OverviewProblemStatement;
   solution: OverviewSolution;
   keyMetrics: OverviewKeyMetrics;
-  coverImage?: ProjectCoverImage;
   links: ProjectLinks;
   mediaGallery: MediaGallerySection;
   mediaItems: ProjectMediaItem[];
   metrics: ProjectMetric[];
 }
 
-export interface ProjectCoverImage {
-  url: string;
-  alt: string;
-  credit?: string;
-}
-
 export interface ProjectMetric {
   label: string;
   value: string;
   description?: string;
-  icon?: string;
-  unit?: string;
-  trend?: "up" | "down" | "stable";
-  threshold?: number | null;
 }
 
 export interface ProjectSection {
@@ -99,20 +67,19 @@ export interface QuickLink {
   title: string;
   description: string;
   url: string;
-  iconPath?: string;
-  icon?: string;
+  iconPath: string;
   color: string;
   external: boolean;
 }
 
 export interface ProjectMediaItem {
-  type: "image" | "video";
+  type: 'image' | 'video';
   url: string;
   thumbnail?: string;
   title: string;
   description: string;
   alt?: string;
-  category?: "screenshot" | "diagram" | "demo" | "architecture";
+  category?: 'screenshot' | 'diagram' | 'demo' | 'architecture';
 }
 
 export interface MediaGallerySection {
@@ -120,8 +87,6 @@ export interface MediaGallerySection {
   description?: string;
   items: ProjectMediaItem[];
 }
-
-export type MediaItem = ProjectMediaItem;
 
 export interface OverviewProblemStatement {
   problemTitle: string;
@@ -142,6 +107,15 @@ export interface Solution {
 export interface OverviewKeyMetrics {
   metricsTitle: string;
   metricsList: string[];
+}
+
+export interface MediaItem {
+  type: 'image' | 'video';
+  url: string;
+  thumbnail?: string;
+  title: string;
+  description: string;
+  alt?: string;
 }
 
 // Section: Code Showcase
@@ -177,6 +151,7 @@ export interface CodeFile {
 export interface InfrastructureModel {
   deploymentLayers: DeploymentLayer[];
   dockerFiles: DockerFile[];
+  // TODO: Add In Existing Project Docs
   cloudServices: CloudService[];
   metrics: InfrastructureMetric[];
 }
@@ -223,7 +198,7 @@ export interface PipelineStage {
 export interface PipelineStep {
   name: string;
   description: string;
-  status: "success" | "running" | "pending";
+  status: 'success' | 'running' | 'pending';
 }
 
 // Section: Features
@@ -242,13 +217,12 @@ export interface ProjectFeature {
   techStack?: string[];
   metrics?: FeatureMetric[];
   codeSnippet?: CodeSnippet;
-  githubExampleUrl?: string;
 }
 
 export interface FeatureMetric {
   label: string;
   value: string;
-  trend?: "up" | "down" | "stable";
+  trend?: 'up' | 'down' | 'stable';
   icon?: string;
 }
 
@@ -259,18 +233,18 @@ export interface CodeSnippet {
 }
 
 export type FeatureCategory =
-  | "authentication"
-  | "database"
-  | "api"
-  | "security"
-  | "performance"
-  | "integration"
-  | "messaging"
-  | "caching"
-  | "monitoring"
-  | "testing";
+  | 'authentication'
+  | 'database'
+  | 'api'
+  | 'security'
+  | 'performance'
+  | 'integration'
+  | 'messaging'
+  | 'caching'
+  | 'monitoring'
+  | 'testing';
 
-export type FeatureStatus = "stable" | "beta" | "experimental" | "deprecated";
+export type FeatureStatus = 'stable' | 'beta' | 'experimental' | 'deprecated';
 
 // Section: Architecture
 export interface ProjectArchitectureModel {
@@ -280,11 +254,13 @@ export interface ProjectArchitectureModel {
   securityStrategies: StrategyItem[];
   cacheStrategies: CacheStrategy[];
   architectureFeatures: ArchitectureFeature[];
+
   architectureDiagram: ArchitectureDiagramModel;
   dataFlow: DataFlowModel;
   techDecisions: TechDecisionsModel;
 }
 
+// Base Architecture Models
 export interface ArchitectureLayer {
   name: string;
   description: string;
@@ -301,7 +277,6 @@ export interface DesignPattern {
   description: string;
   category: string;
   badge: string;
-  githubExampleUrl?: string;
 }
 
 export interface StrategyItem {
@@ -331,12 +306,12 @@ export interface ArchitectureDiagramModel {
 export interface DiagramNode {
   id: string;
   label: string;
-  type: "client" | "gateway" | "service" | "database" | "queue" | "monitoring";
+  type: 'client' | 'gateway' | 'service' | 'database' | 'queue' | 'monitoring';
   x: number;
   y: number;
   connections?: string[];
-  status?: "healthy" | "warning" | "error";
-  traffic?: number;
+  status?: 'healthy' | 'warning' | 'error';
+  traffic?: number; // simulated traffic
 }
 
 export interface DiagramConnection {
@@ -383,12 +358,20 @@ export interface TechDecisionModel {
 // Section: APIs
 export interface APISchema {
   httpEndpoints: ApiEndpoint[];
-  type: "REST" | "GraphQL" | "SOAP" | "Mixed";
+  type: 'REST' | 'GraphQL' | 'SOAP' | 'Mixed';
 }
+
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
 
 export interface ApiEndpoint {
   id: string;
-  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   urlPath: string;
   summary: string;
   description: string;
@@ -402,23 +385,22 @@ export interface ApiEndpoint {
 
 export interface ApiParameter {
   name: string;
-  in: "path" | "query" | "header";
+  in: 'path' | 'query' | 'header';
   type: string;
   required: boolean;
   description: string;
-  example?: unknown;
+  example?: JsonValue;
 }
 
 export interface ApiRequestBody {
   contentType: string;
-  schema: unknown;
-  example: unknown;
+  schema: JsonValue;
+  example: JsonValue;
 }
 
 export interface ApiResponse {
   status: number;
   description: string;
-  schema?: unknown;
-  example: unknown;
+  schema?: JsonValue;
+  example: JsonValue;
 }
-```

@@ -1,142 +1,99 @@
 ---
 problemStatement:
-  problemTitle: "Need a compliant, evolvable banking core without premature microservices"
-  problemDescription: "Core banking behaviors—authentication, accounts, immutable audit, payments with idempotency, loans, and operational visibility—must stay consistent under failure and retries. The codebase should stay testable and modular so bounded contexts can later split out, without running nine deployables on day one."
+  problemTitle: "Learning banking domains without microservice overhead"
+  problemDescription: "Building a credible banking backend requires double-entry ledgers, idempotent payments, loan amortization, audit trails, and secure auth — but a full microservice mesh is heavy for a portfolio or teaching project. Teams also need a path from local Docker to a real cloud deploy without rewriting the domain model."
   problemList:
-    - "Financial writes need atomicity and clear ordering of side-effects (no notifications or audit rows after a rolled-back transaction)."
-    - "HTTP retries must not double-post money movements; idempotency and ledger rules must be first-class."
-    - "Regulators and operators expect append-only audit trails and searchable evidence, not ad hoc logs only."
-    - "Teams want one deployable for velocity, but explicit module seams for a future AWS split (ECS services per context, MSK topics, etc.)."
+    - "Monolithic tutorials skip idempotency, ledger integrity, and append-only audit"
+    - "JWT + RBAC + refresh rotation is often bolted on without Redis-backed revocation"
+    - "Cross-module side effects (transfers → ledger → notifications) are hard to test in isolation"
+    - "Local dev stacks differ from production (H2 vs PostgreSQL, in-process events vs Kafka)"
+    - "Observability (metrics, structured logs, audit files) is rarely wired end-to-end"
 
 solution:
-  solutionTitle: "Modular monolith on Spring Boot with hexagonal-style ports and domain events"
+  solutionTitle: "Modular monolith with clean boundaries and AWS-ready deploy"
   solutionList:
-    - title: "Single runtime, multiple Maven modules"
-      description: "Nine modules compile into one Spring Boot JAR (`bank-boot`). Spring Modulith documents and enforces module relationships so APIs do not degenerate into a big ball of mud."
-    - title: "Double-entry ledger and derived balances"
-      description: "Account mutations persist balanced DEBIT/CREDIT `LedgerEntry` rows; balances are derived from ledger sums rather than a silently mutable balance column alone."
-    - title: "After-commit domain integration"
-      description: "Cross-module reactions use Spring’s application events and transactional boundaries so consumers run only after successful commits where configured (see architecture doc)."
-    - title: "JWT session model with Redis"
-      description: "RS256 JWT access tokens, refresh rotation, and Redis-backed revocation metadata support stateless APIs suitable for ALB → ECS."
-    - title: "AWS-shaped operations story"
-      description: "Production is documented as ECS Fargate tasks behind an ALB, RDS PostgreSQL, ElastiCache Redis, and MSK Kafka—mirroring what Docker Compose approximates locally."
+    - title: "Domain modules with hexagonal layering"
+      description: "Nine Maven modules (shared, iam, accounts, payments, loans, audit, notifications, config, boot) — controllers stay thin; handlers own use cases; domain has zero Spring imports."
+    - title: "Financial correctness by design"
+      description: "Balances derived from ledger entries (never stored), BigDecimal money, transfer state machine, loan amortization schedule, and Result<T> for domain failures."
+    - title: "Production integrations enabled in docker profile"
+      description: "Redis for refresh tokens, JWT blocklist, payment idempotency, and token-bucket rate limits; Kafka ingress for notification dispatch when BANK_KAFKA_ENABLED=true."
+    - title: "Deployed minimalist stack on AWS"
+      description: "Single EC2 instance runs the app container (docker/compose.yml); RDS PostgreSQL and Upstash Redis are external; Kafka broker is a cloud instance the app consumes from; Prometheus/Grafana/Loki for observability on EC2."
+    - title: "OpenAPI-first API surface"
+      description: "REST under /api/v1/* with Swagger UI at /swagger-ui.html and standardized ApiResponse envelope."
 
 keyMetrics:
-  metricsTitle: "Snapshot metrics (code + docs)"
+  metricsTitle: "Platform snapshot"
   metricsList:
-    - "9 Maven modules (including bank-config and bank-boot)"
-    - "17 HTTP JSON endpoints under /api/v1 (plus actuator and OpenAPI static routes)"
-    - "Spring Boot 4.0.5 / Java 21"
-    - "PostgreSQL 16 + Redis 7 + Kafka (Compose: ZooKeeper + Confluent broker)"
-    - "Rate limiting: optional Redis global + annotated profiles (STRICT, STANDARD, SENSITIVE_OPERATIONS)"
-    - "Target production: AWS ECS + RDS + ElastiCache + MSK (documented in infrastructure doc)"
-
-coverImage:
-  url: "https://cdn.PLACEHOLDER.example/bank-api/cover-architecture.png"
-  alt: "Logical view: client, ALB, ECS tasks, RDS, Redis, MSK"
-  credit: "Alexis Trejo (placeholder asset — replace URL when exported diagram is uploaded to S3/CloudFront)"
+    - "9 Maven modules — bank-shared through bank-boot"
+    - "REST API v1 under /api/v1/ (auth, accounts, payments, loans, audit, notifications)"
+    - "15 Flyway migrations (V2–V15 + repeatable seed)"
+    - "Docker image: Eclipse Temurin 21 JRE Alpine, ZGC, healthcheck on /actuator/health"
+    - "Local full stack: postgres, redis, kafka, prometheus, grafana, loki, nginx via compose.local.yml"
 
 links:
-  github: "https://github.com/alexistrejo11/bank-api"
-  demo: "https://api.bank.prod.PLACEHOLDER.example.com/swagger-ui/index.html"
-  documentation: "https://github.com/alexistrejo11/bank-api/tree/main/docs"
+  github: "https://github.com/alexisTrejo11/bank-api"
+  demo: "https://{{YOUR_DOMAIN_OR_EC2}}/actuator/health"
+  documentation: "https://{{YOUR_DOMAIN_OR_EC2}}/swagger-ui.html"
   dockerHub: null
 
 mediaGallery:
-  title: "Media gallery (placeholder assets)"
-  description: "Replace URLs with S3 or CloudFront paths after you capture screenshots and diagrams from the AWS environment."
+  title: "Bank API — product views"
+  description: "Screenshots and diagrams for portfolio presentation. Replace placeholder URLs with Swagger UI, Grafana dashboard, or architecture exports from your AWS deploy."
   items:
     - type: "image"
-      url: "https://cdn.PLACEHOLDER.example/bank-api/gallery-01-modulith.png"
-      thumbnail: "https://cdn.PLACEHOLDER.example/bank-api/gallery-01-modulith-thumb.png"
-      title: "Spring Modulith module graph"
-      description: "Placeholder for a screenshot of the Modulith documentation or build-time module graph."
-      alt: "Module graph placeholder"
-      category: "architecture"
-    - type: "image"
-      url: "https://cdn.PLACEHOLDER.example/bank-api/gallery-02-swagger.png"
-      thumbnail: "https://cdn.PLACEHOLDER.example/bank-api/gallery-02-swagger-thumb.png"
-      title: "Swagger UI on ALB"
-      description: "Placeholder for Swagger UI against the production or staging ALB (consider IP restriction)."
-      alt: "Swagger UI placeholder"
+      url: "https://placehold.co/1200x630/1E3A5F/ffffff?text=Bank+API"
+      thumbnail: "https://placehold.co/400x210/1E3A5F/ffffff?text=Bank+API"
+      title: "API cover"
+      description: "Modular monolith banking REST API — IAM, accounts, payments, loans"
+      alt: "Bank API branding placeholder"
       category: "screenshot"
     - type: "image"
-      url: "https://cdn.PLACEHOLDER.example/bank-api/gallery-03-grafana.png"
-      thumbnail: "https://cdn.PLACEHOLDER.example/bank-api/gallery-03-grafana-thumb.png"
-      title: "Grafana JVM dashboard"
-      description: "Placeholder for Grafana (Compose today; Amazon Managed Grafana or self-hosted on AWS later)."
-      alt: "Grafana dashboard placeholder"
-      category: "screenshot"
-    - type: "video"
-      url: "https://cdn.PLACEHOLDER.example/bank-api/walkthrough.mp4"
-      thumbnail: "https://cdn.PLACEHOLDER.example/bank-api/walkthrough-thumb.png"
-      title: "Architecture walkthrough"
-      description: "Placeholder for a short Loom or S3-hosted MP4 explaining request and event flows."
-      alt: "Walkthrough video placeholder"
+      url: "https://placehold.co/1200x800/2563EB/ffffff?text=Swagger+OpenAPI"
+      thumbnail: "https://placehold.co/400x267/2563EB/ffffff?text=OpenAPI"
+      title: "OpenAPI documentation"
+      description: "Interactive API schema via springdoc-openapi"
+      alt: "OpenAPI Swagger UI placeholder"
       category: "demo"
 
 mediaItems:
   - type: "image"
-    url: "https://cdn.PLACEHOLDER.example/bank-api/media-arch.png"
-    thumbnail: "https://cdn.PLACEHOLDER.example/bank-api/media-arch-thumb.png"
-    title: "AWS reference architecture"
-    description: "ALB, ECS service, RDS, ElastiCache, MSK — export from draw.io or Lucidchart."
-    alt: "AWS diagram placeholder"
+    url: "https://placehold.co/800x500/059669/ffffff?text=AWS+Architecture"
+    thumbnail: "https://placehold.co/320x200/059669/ffffff?text=AWS"
+    title: "AWS deployment"
+    description: "EC2 app container connecting to RDS, Upstash Redis, cloud Kafka, and on-EC2 Prometheus/Grafana/Loki"
+    alt: "AWS architecture placeholder"
     category: "architecture"
   - type: "image"
-    url: "https://cdn.PLACEHOLDER.example/bank-api/media-seq-transfer.png"
-    thumbnail: ""
-    title: "Transfer sequence"
-    description: "Placeholder sequence: client → ALB → TransferController → domain → events → ledger listener."
-    alt: "Sequence diagram placeholder"
-    category: "diagram"
-  - type: "image"
-    url: "https://cdn.PLACEHOLDER.example/bank-api/media-er.png"
-    thumbnail: ""
-    title: "Persistence overview"
-    description: "Placeholder ER or schema map (Flyway migrations are source of truth)."
-    alt: "ER placeholder"
+    url: "https://placehold.co/800x500/DC2626/ffffff?text=Grafana+Dashboard"
+    thumbnail: "https://placehold.co/320x200/DC2626/ffffff?text=Grafana"
+    title: "Observability"
+    description: "Metrics from /actuator/prometheus scraped by Prometheus; logs shipped to Loki"
+    alt: "Grafana dashboard placeholder"
     category: "diagram"
 
 metrics:
   - label: "Maven modules"
     value: "9"
-    description: "Shared kernel, IAM, accounts, audit, payments, loans, notifications, config, boot"
-    icon: "📦"
-    unit: "count"
-    trend: "stable"
-    threshold: null
-  - label: "Versioned REST paths"
-    value: "17"
-    description: "Controller-mapped /api/v1 routes (excluding actuator and OpenAPI assets)"
-    icon: "🌐"
-    unit: "endpoints"
-    trend: "up"
-    threshold: null
-  - label: "Java LTS"
+    description: "shared, iam, accounts, audit, payments, loans, notifications, config, boot"
+  - label: "API version"
+    value: "v1"
+    description: "Primary prefix /api/v1/"
+  - label: "Java runtime"
     value: "21"
-    description: "Temurin JDK in Docker build; virtual-thread-ready stack"
-    icon: "☕"
-    unit: "version"
-    trend: "stable"
-    threshold: null
-  - label: "Spring Boot"
-    value: "4.0.5"
-    description: "Parent BOM version from bank-parent POM"
-    icon: "🍃"
-    unit: "version"
-    trend: "stable"
-    threshold: null
+    description: "Eclipse Temurin JDK/JRE in Docker multi-stage build"
+  - label: "Auth"
+    value: "JWT RS256"
+    description: "15 min access, 7 day refresh in Redis, jti blocklist on logout"
 ---
 
 # Overview
 
-## Notes
+> **Audience:** Developers learning domain-driven design, financial APIs, and pragmatic AWS deployment without Kubernetes complexity.
 
-- **Danger**: `docker/compose.local.yml` exposes nginx on **port 80 (HTTP)** with `limit_req` — there is **no TLS** in that file. For AWS, terminate TLS at the ALB with ACM; do not copy the Compose TLS story to production verbatim.
-- **Danger**: Global `failOpen` on rate limiting favors availability when Redis is sick; document whether you ever want `failOpen: false` for fraud-sensitive endpoints.
-- **Good**: `SecurityConfig` maps each banking route to fine-grained authorities (`accounts:read`, `payments:write`, etc.), which transfers cleanly to IAM-style policies or Cognito groups later.
-- **Missing**: All `cdn.PLACEHOLDER.example` URLs are fictional — upload real assets to S3 and invalidate CloudFront when ready.
-- **Observation**: Compose uses **Confluent Kafka + ZooKeeper**, not Redpanda; MSK is the natural AWS counterpart for the same client code paths.
-- **Observation**: `bank-config` holds cross-cutting security beans; keep dependency rules one-way (feature modules should not depend on `bank-config` types from domain packages if you later extract services).
+> **AWS deploy (current):** Application container on **EC2** (`docker/compose.yml`), database on **Amazon RDS PostgreSQL**, cache/idempotency on **Upstash Redis**, **Kafka** consumed from an external cloud broker for notification pipeline, and **Prometheus + Grafana + Loki** on EC2 for external observability. See [ProjectInfrastructure.md](../generated/ProjectInfrastructure.md).
+
+> **Useful:** Local full stack mirrors production wiring via `docker/compose.local.yml` — set `BANK_KAFKA_ENABLED=true` and `BANK_NOTIFICATIONS_DISPATCH_MODE=kafka` to exercise the same paths as AWS.
+
+> **Warning:** This is an educational/portfolio API — not licensed banking software. Do not use for real customer funds without formal security, compliance, and penetration review.

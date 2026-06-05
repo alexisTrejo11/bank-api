@@ -1,6 +1,6 @@
 # Observability
 
-Operational guide for logs and metrics. Detailed design: [project/source/Observability.md](project/source/Observability.md). Docker wiring: [docker/MONITORING.md](../docker/MONITORING.md).
+Operational guide for logs and metrics. Infrastructure context: [project/generated/ProjectInfrastructure.md](project/generated/ProjectInfrastructure.md). Docker wiring: [docker/MONITORING.md](../docker/MONITORING.md).
 
 ## Quick start (local stack)
 
