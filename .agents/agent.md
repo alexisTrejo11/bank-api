@@ -21,7 +21,7 @@
 ```bash
 ./mvnw clean verify                    # full build + tests (from repo root)
 ./mvnw test                            # unit tests only
-./mvnw -pl bank-boot spring-boot:run   # runnable application module
+./mvnw -pl bank-boot -am spring-boot:run   # rebuilds dependency modules (bank-config, bank-iam, …) from source
 docker compose up --build              # full local stack (when compose is present)
 docker compose up -d postgres redis kafka   # infra for v0.2.0 (see README + docs/v0.2.0/DATABASE.md)
 ```

@@ -3,6 +3,7 @@ package io.github.alexistrejo11.bank;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+
 @SpringBootApplication(scanBasePackages = {
 		"io.github.alexistrejo11.bank",
 		"io.github.alexisTrejo11.bank", // Fails if remove

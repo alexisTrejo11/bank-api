@@ -1,0 +1,3 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+io.github.alexistrejo11.bank.infrastructure.env.DotEnvEnvironmentPostProcessor,\
+io.github.alexistrejo11.bank.infrastructure.logging.BankLoggingProfileActivator

@@ -1,7 +1,6 @@
 package io.github.alexistrejo11.bank.iam.infrastructure.persistence.repository;
 
 import io.github.alexistrejo11.bank.iam.domain.model.User;
-import io.github.alexistrejo11.bank.iam.domain.model.UserStatus;
 import io.github.alexistrejo11.bank.iam.domain.repository.UserRepository;
 import io.github.alexistrejo11.bank.iam.infrastructure.persistence.entity.RoleEntity;
 import io.github.alexistrejo11.bank.iam.infrastructure.persistence.entity.UserEntity;

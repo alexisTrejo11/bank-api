@@ -3,7 +3,6 @@ package io.github.alexisTrejo11.bank.security;
 import io.github.alexisTrejo11.bank.security.token.jwt.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -20,19 +19,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
 
 	@Bean
-	@Order(1)
-	SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
-		return http
-				.securityMatcher("/actuator/**")
-				.csrf(AbstractHttpConfigurer::disable)
-				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.authorizeHttpRequests(a -> a.anyRequest().permitAll())
-				.build();
-	}
-
-	@Bean
-	@Order(2)
-	SecurityFilterChain apiSecurityFilterChain(
+	SecurityFilterChain securityFilterChain(
 			HttpSecurity http,
 			JwtAuthenticationFilter jwtAuthenticationFilter,
 			CorsConfigurationSource bankCorsConfigurationSource) throws Exception {
@@ -42,6 +29,7 @@ public class SecurityConfig {
 				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(a -> a
 						.requestMatchers(
+								"/actuator/**",
 								"/api/v1/auth/register",
 								"/api/v1/auth/login",
 								"/api/v1/auth/refresh",
@@ -49,9 +37,11 @@ public class SecurityConfig {
 								"/swagger-ui.html",
 								"/api-docs/**",
 								"/v3/api-docs/**",
-								"/.well-known/jwks.json")
+								"/.well-known/jwks.json",
+								"/health",
+								"/error"
+							)
 						.permitAll()
-						.requestMatchers("/error").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/accounts")
 						.hasAuthority("accounts:write")
 						.requestMatchers(HttpMethod.GET, "/api/v1/accounts/*/balance")
