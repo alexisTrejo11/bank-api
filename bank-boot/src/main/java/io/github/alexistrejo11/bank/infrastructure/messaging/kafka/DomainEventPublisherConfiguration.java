@@ -3,8 +3,7 @@ package io.github.alexistrejo11.bank.infrastructure.messaging.kafka;
 import io.github.alexistrejo11.bank.shared.shared_kernel.messaging.DomainEventPublisher;
 import io.github.alexistrejo11.bank.shared.shared_kernel.event.BankDomainEvent;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -15,15 +14,8 @@ public class DomainEventPublisherConfiguration {
 
 	@Bean
 	@Primary
-	@ConditionalOnProperty(prefix = "bank.kafka", name = "enabled", havingValue = "true")
-	public DomainEventPublisher kafkaDomainEventPublisher(KafkaTemplate<String, BankDomainEvent> kafkaTemplate) {
+	public DomainEventPublisher kafkaDomainEventPublisher(
+			@Qualifier("bankDomainEventKafkaTemplate") KafkaTemplate<String, BankDomainEvent> kafkaTemplate) {
 		return new KafkaDomainEventPublisher(kafkaTemplate);
-	}
-
-	@Bean
-	@Primary
-	@ConditionalOnProperty(prefix = "bank.kafka", name = "enabled", havingValue = "false", matchIfMissing = true)
-	public DomainEventPublisher legacyDomainEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
-		return new LegacyDomainEventPublisher(applicationEventPublisher);
 	}
 }

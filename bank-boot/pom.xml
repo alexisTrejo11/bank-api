@@ -162,6 +162,7 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
 					<skip>false</skip>
+					<workingDirectory>${project.parent.basedir}</workingDirectory>
 				</configuration>
 			</plugin>
 		</plugins>

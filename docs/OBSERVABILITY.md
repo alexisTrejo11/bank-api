@@ -15,10 +15,15 @@ docker compose --env-file .env -f docker/compose.local.yml up -d --build
 | Prometheus | http://localhost:9090 |
 | Loki | http://localhost:3100 |
 
-Suggested `.env` for local observability:
+Loki push is **enabled by default** (`BANK_LOGGING_LOKI_ENABLED=true`). Set `LOKI_URL` in `.env`:
 
 ```env
-BANK_LOGGING_LOKI_ENABLED=true
+LOKI_URL=http://localhost:3100/loki/api/v1/push
+```
+
+For the Docker stack:
+
+```env
 LOKI_URL=http://loki:3100/loki/api/v1/push
 GRAFANA_LOKI_URL=http://loki:3100
 LOKI_PORT=3100
@@ -34,13 +39,18 @@ docker compose --env-file .env -f docker/compose.local.yml --profile elk up -d
 
 ## Log files (on disk)
 
-| File | Logger | Console |
-|------|--------|---------|
-| `logs/audit.json` | `AUDIT` | No |
-| `logs/access.json` | `ACCESS` | No |
-| stdout | `root` | Yes (JSON) |
+All files live under `BANK_LOGGING_DIRECTORY` (default `logs/`). The directory is created on first write.
 
-Rotation is configured via `BANK_LOGGING_MAX_FILE_SIZE_MB`, `BANK_LOGGING_MAX_HISTORY_DAYS`, and `BANK_LOGGING_TOTAL_SIZE_CAP_MB`.
+| File | Logger | Console | Loki label |
+|------|--------|---------|------------|
+| `logs/app.json` | `root` | Yes | `log_type=application` |
+| `logs/audit.json` | `AUDIT` | No | `log_type=audit` |
+| `logs/access.json` | `ACCESS` | No | `log_type=access` |
+
+- **Local / default profile**: console is human-readable (colored).
+- **Docker profile**: console is JSON (for container log collectors).
+
+Rotation: `BANK_LOGGING_MAX_FILE_SIZE_MB`, `BANK_LOGGING_MAX_HISTORY_DAYS`, `BANK_LOGGING_TOTAL_SIZE_CAP_MB` (per file type).
 
 ## What not to ship to central monitoring
 

@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Spring Boot 4 does not always expose a Jackson 2 {@link ObjectMapper} bean; notification Kafka
- * adapters serialize JSON explicitly and need one when {@code bank.notifications.kafka.enabled=true}.
+ * Notification Kafka adapters serialize JSON explicitly and require a shared {@link ObjectMapper}.
  */
 @Configuration
 public class NotificationsJacksonConfiguration {

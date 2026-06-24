@@ -22,6 +22,16 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:?Set SPRING_KAFKA_BOOTSTRAP_SERVERS in .env}
+    admin:
+      fail-fast: true
+    consumer:
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:?Set SPRING_KAFKA_CONSUMER_GROUP_ID in .env}
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 springdoc:
   api-docs:
@@ -41,6 +51,8 @@ logging:
     org.springframework: WARN
     org.apache.kafka: WARN
     com.zaxxer.hikari: WARN
+    com.tngtech.archunit: ERROR
+    io.netty: WARN
 
 management:
   endpoints:
@@ -54,6 +66,8 @@ management:
   health:
     redis:
       enabled: false
+    kafka:
+      enabled: true
 
 # See .env.example — use BANK_* / SPRING_* environment variables (or a repo-root .env file).
 bank:
@@ -74,9 +88,7 @@ bank:
   notifications:
     dev-redirect-email: ${BANK_NOTIFICATIONS_DEV_REDIRECT_EMAIL:}
     stub-sms-e164: ${BANK_NOTIFICATIONS_STUB_SMS_E164:+15555550100}
-    dispatch-mode: direct
     kafka:
-      enabled: false
       dispatch-topic: ${BANK_NOTIFICATIONS_KAFKA_DISPATCH_TOPIC:bank.notifications.dispatch}
       pipeline-topic: ${BANK_NOTIFICATIONS_KAFKA_PIPELINE_TOPIC:bank.notifications.pipeline}
   logging:
@@ -86,8 +98,8 @@ bank:
       max-history-days: ${BANK_LOGGING_MAX_HISTORY_DAYS:14}
       total-size-cap-mb: ${BANK_LOGGING_TOTAL_SIZE_CAP_MB:500}
     loki:
-      url: ${LOKI_URL:}
-      enabled: ${BANK_LOGGING_LOKI_ENABLED:false}
+      url: ${LOKI_URL:http://localhost:3100/loki/api/v1/push}
+      enabled: ${BANK_LOGGING_LOKI_ENABLED:true}
     logstash:
       enabled: ${BANK_LOGGING_LOGSTASH_ENABLED:false}
       host: ${LOGSTASH_HOST:logstash}

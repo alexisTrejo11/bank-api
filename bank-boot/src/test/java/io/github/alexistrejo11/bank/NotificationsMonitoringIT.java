@@ -11,17 +11,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
-class NotificationsMonitoringIT {
+class NotificationsMonitoringIT extends AbstractBankIntegrationTest {
 
 	private static final ObjectMapper JSON = new ObjectMapper();
 	private static final String ADMIN_ROLE_ID = "00000000-0000-0000-0000-0000000000a2";

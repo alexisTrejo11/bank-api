@@ -18,16 +18,20 @@ spring:
       password: ${SPRING_DATA_REDIS_PASSWORD:}
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:?Set SPRING_KAFKA_BOOTSTRAP_SERVERS in .env}
+    admin:
+      fail-fast: true
     consumer:
       group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:?Set SPRING_KAFKA_CONSUMER_GROUP_ID in .env}
       auto-offset-reset: earliest
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 management:
   health:
     redis:
+      enabled: true
+    kafka:
       enabled: true
 
 bank:
@@ -35,12 +39,10 @@ bank:
     file:
       directory: ${BANK_LOGGING_DIRECTORY:/app/logs}
     loki:
-      url: ${LOKI_URL:}
-      enabled: ${BANK_LOGGING_LOKI_ENABLED:false}
+      url: ${LOKI_URL:http://loki:3100/loki/api/v1/push}
+      enabled: ${BANK_LOGGING_LOKI_ENABLED:true}
     logstash:
       enabled: ${BANK_LOGGING_LOGSTASH_ENABLED:false}
-  kafka:
-    enabled: ${BANK_KAFKA_ENABLED:?Set BANK_KAFKA_ENABLED in .env}
   rate-limiting:
     enabled: true
     fail-open: true
@@ -50,6 +52,4 @@ bank:
   payments:
     redis-idempotency: true
   notifications:
-    dispatch-mode: ${BANK_NOTIFICATIONS_DISPATCH_MODE:direct}
-    kafka:
-      enabled: ${BANK_KAFKA_ENABLED:false}
+    dev-redirect-email: ${BANK_NOTIFICATIONS_DEV_REDIRECT_EMAIL:}

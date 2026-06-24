@@ -6,12 +6,10 @@ import io.github.alexistrejo11.bank.notifications.domain.port.out.NotificationKa
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(name = "bank.notifications.kafka.enabled", havingValue = "true")
 public class KafkaBrokerNotificationKafkaPublisher implements NotificationKafkaPublisherPort {
 
 	private static final Logger log = LoggerFactory.getLogger(KafkaBrokerNotificationKafkaPublisher.class);

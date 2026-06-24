@@ -15,7 +15,6 @@ import io.github.alexistrejo11.bank.shared.shared_kernel.event.TransferReversedE
 
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +23,6 @@ import org.springframework.stereotype.Component;
  * payloads as domain events).
  */
 @Component
-@ConditionalOnProperty(prefix = "bank.kafka", name = "enabled", havingValue = "true")
 public class NotificationsKafkaConsumer {
 
 	private final NotificationDispatchIngress notificationDispatchIngress;
