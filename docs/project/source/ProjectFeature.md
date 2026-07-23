@@ -187,7 +187,7 @@ features:
       - "bank-shared/shared_kernel/api"
     metrics:
       - label: "Documented version"
-        value: "0.3.0"
+        value: "0.4.0"
         trend: "stable"
         icon: "tag"
 

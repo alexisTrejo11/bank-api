@@ -47,6 +47,6 @@ class HealthEndpointIT extends AbstractBankIntegrationTest {
 		mockMvc.perform(post("/api/v1/accounts")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"type\":\"CHECKING\",\"currency\":\"USD\"}"))
-				.andExpect(status().isForbidden());
+				.andExpect(status().isUnauthorized());
 	}
 }

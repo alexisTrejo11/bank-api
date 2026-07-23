@@ -5,10 +5,10 @@
 	<parent>
 		<groupId>io.github.alexistrejo11</groupId>
 		<artifactId>bank-parent</artifactId>
-		<version>0.3.0</version>
+		<version>0.4.0</version>
 	</parent>
 	<artifactId>bank-payments</artifactId>
-	<version>0.3.0</version>
+	<version>0.4.0</version>
 	<name>bank-payments</name>
 	<description>Transfers, idempotency, domain events</description>
 	<dependencies>

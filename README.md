@@ -36,7 +36,7 @@ The project is intentionally **minimalist but production-shaped**: it runs in Do
 
 | | |
 |---|---|
-| **Version** | 0.3.0 |
+| **Version** | 0.4.0 |
 | **Status** | Stable (portfolio / educational) |
 | **Primary API prefix** | `/api/v1/` |
 | **Live / health check** | [{{YOUR_DOMAIN}}/actuator/health](https://{{YOUR_DOMAIN_OR_EC2}}/actuator/health) |

@@ -5,7 +5,7 @@ Minimalist modular-monolith banking REST API — IAM, double-entry accounts, tra
 | Field | Value |
 | --- | --- |
 | Project ID | bank-api |
-| Version | 0.3.0 |
+| Version | 0.4.0 |
 | Language | Java |
 | Framework | Spring Boot |
 | Category | backend |

@@ -1,6 +1,6 @@
 package io.github.alexistrejo11.bank.shared.shared_kernel.messaging;
 
-/** Kafka topic names (v0.3.0 infra). */
+/** Kafka topic names (v0.4.0 infra). */
 public final class BankKafkaTopics {
 
 	public static final String TRANSFERS = "bank.transfers";

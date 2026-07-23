@@ -266,7 +266,7 @@ springdoc-openapi with @BankApiOperation annotations. ApiResponse<T> envelope wi
 
 | Label | Value | Trend |
 | --- | --- | --- |
-| Documented version | 0.3.0 | stable |
+| Documented version | 0.4.0 | stable |
 
 ## Docker + AWS production deploy
 

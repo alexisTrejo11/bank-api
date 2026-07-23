@@ -1,16 +1,22 @@
 package io.github.alexisTrejo11.bank.security;
 
 import io.github.alexisTrejo11.bank.security.token.jwt.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -67,6 +73,16 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/v1/notifications/monitoring/summary")
 						.hasAuthority("notifications:read")
 						.anyRequest().authenticated())
+				.exceptionHandling(ex -> ex
+						.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+						.accessDeniedHandler((request, response, accessDeniedException) -> {
+							Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+							if (auth == null || auth instanceof AnonymousAuthenticationToken) {
+								response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+							} else {
+								response.sendError(HttpServletResponse.SC_FORBIDDEN);
+							}
+						}))
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 				.build();
 	}

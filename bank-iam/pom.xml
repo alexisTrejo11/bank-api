@@ -5,10 +5,10 @@
 	<parent>
 		<groupId>io.github.alexistrejo11</groupId>
 		<artifactId>bank-parent</artifactId>
-		<version>0.3.0</version>
+		<version>0.4.0</version>
 	</parent>
 	<artifactId>bank-iam</artifactId>
-	<version>0.3.0</version>
+	<version>0.4.0</version>
 	<name>bank-iam</name>
 	<description>Identity and access: users, roles, JWT (RS256), refresh tokens</description>
 	<dependencies>
